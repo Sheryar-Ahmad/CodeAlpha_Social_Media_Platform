@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="800" viewBox="0 0 1100 800">
+  <rect width="1100" height="800" fill="#e8e9df" />
+  <g fill="#363e32">
+    <text x="59" y="68" font-family="Arial,sans-serif" font-size="17" letter-spacing="4">
+      FORM &amp; FUNCTION / STUDY 02
+    </text>
+    <rect x="80" y="183" width="260" height="260" rx="130" />
+    <path d="M420 183h260v260H420z" />
+    <path d="M760 443V183h260z" />
+  </g>
+  <g fill="#a8b991">
+    <path d="M80 483h260v260H80z" />
+    <path d="M420 743V483h260z" />
+    <rect x="760" y="483" width="260" height="260" rx="130" />
+  </g>
+  <text
+    x="770"
+    y="131"
+    font-family="Arial,sans-serif"
+    font-size="31"
+    fill="#363e32"
+    letter-spacing="-1"
+  >
+    Start with the basics.
+  </text>
+</svg>
