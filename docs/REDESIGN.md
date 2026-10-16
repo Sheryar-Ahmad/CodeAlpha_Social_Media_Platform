@@ -10,7 +10,7 @@ A visual social space to share work, learn, collect references, and discuss ever
 - Replace large greeting panels, ornamental cards, quotes, and competing calls to action with a concise page heading and immediate content.
 - Use a responsive three-column visual gallery at large widths, two columns on tablets, and one column on phones.
 - Open contributions in a dedicated conversation view, keeping the gallery easy to scan.
-- Use charcoal `#202020`, paper `#ffffff`, muted gray, and vermilion `#e4492d` for the main action. No gradients or decorative hero illustrations.
+- Use charcoal `#202020`, warm paper `#faf9f6`, white cards, muted gray, and vermilion `#cf4228` for the main action. Topic accents use coordinated plum, blue, sage, yellow, and clay.
 - Use a bold wordmark, editorial typography, real photography, custom SVG graphic studies, and generous image areas. Stock portraits depict fictional demo people.
 - Keep the creation flow to one modal with an optional title, a thought, a topic, and an optional photo with a description.
 - Add interest tuning, named saved collections, and own-post editing/deletion. Six topics make room for learning, careers, and everyday life as well as creative work.
@@ -42,4 +42,12 @@ Check deterministic ranking, interest changes, author diversity, chronological a
 
 [Behance visual discovery](https://help.behance.net/hc/en-us/articles/204484044-Guide-Discover-Creative-Work-on-Behance) and [Are.na's purpose](https://www.are.na/about) inform discovery and saving. Forma uses an original layout and identity.
 
-Backend scope remains unchanged: this rebuild is local. Secure identity, shared MongoDB data, uploads, and live notifications remain separate milestones.
+## Graphics refresh - 16 October 2026
+
+The welcome and desktop feed use an original photo-and-vector collage: an existing local landscape, a botanical mark, a sage idea card, and a small coral stamp. The collage collapses on tablet/phone feed layouts so posts stay prominent; the mobile sign-in header uses the small botanical mark.
+
+Post previews have white frames, soft borders, rounded corners, and restrained hover elevation. Text-only posts use topic-specific paper/ink colors and vector patterns. Topic filters have consistent Lucide symbols; discovery artwork preserves the complete SVG composition. Saved-state color and small press/hover transitions give visible feedback. Device reduced-motion preferences disable transitions.
+
+`components/Graphics.jsx` contains the reusable artwork and topic symbols; `graphics.css` contains their responsive styling. These extend the existing code-native graphic system and local photographs. No image service, additional package, external font, or external runtime image request is required.
+
+The shared Express/MongoDB application is implemented. See [the current roadmap](PLAN.md) for the remaining release work.
