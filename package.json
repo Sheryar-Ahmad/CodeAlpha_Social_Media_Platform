@@ -1,26 +1,46 @@
 {
   "name": "forma-social",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "engines": {
     "node": ">=20.19.0"
   },
+  "config": {
+    "mongodbMemoryServer": {
+      "disablePostinstall": true
+    }
+  },
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
+    "dev": "node scripts/dev.js",
+    "dev:client": "vite --host 127.0.0.1 --port 5175 --strictPort",
+    "start": "node server/index.js",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node --test tests/state.test.js",
+    "test": "node --test --test-concurrency=1 tests/state.test.js tests/api.test.js tests/account.test.js",
+    "test:unit": "node --test tests/state.test.js",
+    "test:api": "node --test --test-concurrency=1 tests/api.test.js tests/account.test.js",
+    "test:live": "node tests/live-browser.test.js",
     "test:browser": "node tests/browser.test.js"
   },
   "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.4.2",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
+    "helmet": "^8.3.0",
     "lucide-react": "^0.468.0",
+    "mongoose": "^9.11.2",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "sharp": "^0.35.5",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.0",
+    "mongodb-memory-server": "^10.4.3",
     "playwright": "^1.55.0",
+    "supertest": "^7.3.1",
     "vite": "^7.0.0"
   }
 }
