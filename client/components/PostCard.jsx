@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Heart, MessageCircle, Bookmark, Share2, Send, ArrowUpRight } from 'lucide-react';
 import { Avatar } from './ui.jsx';
 import { people } from '../data/seed.js';
+import { NotePattern, TopicIcon } from './Graphics.jsx';
 
 function timestamp(value) {
   const hours = Math.max(0, (Date.now() - Date.parse(value)) / 3_600_000);
@@ -29,17 +30,25 @@ export default function PostCard({
   onEdit,
   onDelete,
   detail = false,
+  onPerson = null,
+  mode = 'demo',
 }) {
   const [comment, setComment] = useState('');
   const [error, setError] = useState('');
+  const [removingComment, setRemovingComment] = useState(null);
   const author =
-    post.authorId === 'you' ? state.profile : people.find((person) => person.id === post.authorId);
+    post.authorId === 'you'
+      ? state.profile
+      : (state.people || people).find((person) => person.id === post.authorId) || {
+          name: 'Former member',
+          handle: 'unavailable',
+        };
   const liked = state.liked.includes(post.id);
   const saved = state.saved.includes(post.id);
   const title = post.title || excerpt(post.text.split('\n')[0] || 'A new perspective.', 65);
 
-  function save() {
-    dispatch({ type: 'save', id: post.id });
+  async function save() {
+    if (!(await dispatch({ type: 'save', id: post.id }))) return;
     notify(saved ? 'Removed from saved posts.' : 'Saved for later.');
   }
 
@@ -47,23 +56,27 @@ export default function PostCard({
     const link = `${location.origin}${location.pathname}#post/${post.id}`;
     try {
       await navigator.clipboard.writeText(link);
-      notify('Link copied. This local post opens in the same browser.');
+      notify(
+        mode === 'demo'
+          ? 'Link copied. This local post opens in the same browser.'
+          : 'Post link copied.',
+      );
     } catch {
       notify('Clipboard unavailable. Copy the post link from the address bar.');
     }
   }
 
-  function addComment(event) {
+  async function addComment(event) {
     event.preventDefault();
     if (!comment.trim() || comment.trim().length > 300) {
       setError('Write a comment between 1 and 300 characters.');
       return;
     }
     if (post.comments.length >= 100) {
-      setError('This demo thread has reached its 100-comment limit.');
+      setError('This conversation has reached its 100-comment limit.');
       return;
     }
-    dispatch({
+    const saved = await dispatch({
       type: 'comment',
       id: post.id,
       comment: {
@@ -73,6 +86,7 @@ export default function PostCard({
         createdAt: new Date().toISOString(),
       },
     });
+    if (!saved) return;
     setComment('');
     setError('');
     notify('Reply added.');
@@ -87,10 +101,17 @@ export default function PostCard({
       height="800"
     />
   ) : (
-    <div className="text-study">
-      <span>FIELD NOTES / {post.topic.toUpperCase()}</span>
+    <div className="text-study" data-topic={post.topic}>
+      <div className="note-heading">
+        <TopicIcon topic={post.topic} size={18} />
+        <span>FIELD NOTES / {post.topic.toUpperCase()}</span>
+      </div>
       <p>{excerpt(post.text, 175)}</p>
-      <ArrowUpRight size={25} />
+      <NotePattern topic={post.topic} />
+      <div className="note-footer">
+        <span>Open conversation</span>
+        <ArrowUpRight size={17} />
+      </div>
     </div>
   );
 
@@ -98,7 +119,15 @@ export default function PostCard({
     <header className="post-author">
       <Avatar person={author} size="small" />
       <div>
-        <h3>{author.name}</h3>
+        <h3>
+          {onPerson ? (
+            <button className="author-name" onClick={() => onPerson(author.id)}>
+              {author.name}
+            </button>
+          ) : (
+            author.name
+          )}
+        </h3>
         {detail && <span>@{author.handle}</span>}
       </div>
       <button className="topic-link" onClick={() => onTopic(post.topic)}>
@@ -114,6 +143,7 @@ export default function PostCard({
         onClick={() => dispatch({ type: 'like', id: post.id })}
         aria-label={`${liked ? 'Unlike' : 'Like'} post by ${author.name}`}
         aria-pressed={liked}
+        disabled={state.busy}
       >
         <Heart size={17} fill={liked ? 'currentColor' : 'none'} />
         <span>{post.likes + Number(liked)}</span>
@@ -123,8 +153,9 @@ export default function PostCard({
 
   if (!detail)
     return (
-      <article className="post-card" id={`post-${post.id}`}>
+      <article className="post-card" data-topic={post.topic} id={`post-${post.id}`}>
         <div className="post-media">
+          {post.isSample && <span className="sample-label">Starter post</span>}
           <button
             className="media-button"
             onClick={() => onOpen(post.id)}
@@ -132,11 +163,17 @@ export default function PostCard({
           >
             {image}
           </button>
+          {post.image && (
+            <span className="media-open-hint" aria-hidden="true">
+              <ArrowUpRight size={18} />
+            </span>
+          )}
           <button
             className={`save-overlay ${saved ? 'is-saved' : ''}`}
             onClick={save}
             aria-label={`${saved ? 'Unsave' : 'Save'} post by ${author.name}`}
             aria-pressed={saved}
+            disabled={state.busy}
           >
             <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
           </button>
@@ -186,6 +223,7 @@ export default function PostCard({
             onClick={save}
             aria-label={`${saved ? 'Unsave' : 'Save'} post by ${author.name}`}
             aria-pressed={saved}
+            disabled={state.busy}
           >
             <Bookmark size={17} fill={saved ? 'currentColor' : 'none'} />
             {saved ? 'Saved' : 'Save'}
@@ -234,13 +272,54 @@ export default function PostCard({
             const person =
               item.authorId === 'you'
                 ? state.profile
-                : people.find((user) => user.id === item.authorId);
+                : (state.people || people).find((user) => user.id === item.authorId) || {
+                    name: 'Former member',
+                  };
             return (
               <article className="comment" key={item.id}>
                 <Avatar person={person} size="small" />
                 <div>
                   <h3>{person.name}</h3>
                   <p>{item.text}</p>
+                  {item.authorId === 'you' &&
+                    (removingComment === item.id ? (
+                      <div className="reply-confirm" role="group" aria-label="Remove this reply">
+                        <span>Remove your reply?</span>
+                        <button
+                          className="text-button"
+                          disabled={state.busy}
+                          onClick={() => setRemovingComment(null)}
+                        >
+                          Keep reply
+                        </button>
+                        <button
+                          className="text-button danger-text"
+                          disabled={state.busy}
+                          onClick={async () => {
+                            if (
+                              await dispatch({
+                                type: 'comment.delete',
+                                id: post.id,
+                                commentId: item.id,
+                              })
+                            ) {
+                              setRemovingComment(null);
+                              notify('Reply removed.');
+                            }
+                          }}
+                        >
+                          Remove reply
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className="text-button remove-reply"
+                        disabled={state.busy}
+                        onClick={() => setRemovingComment(item.id)}
+                      >
+                        Remove your reply
+                      </button>
+                    ))}
                 </div>
               </article>
             );
@@ -256,7 +335,7 @@ export default function PostCard({
               maxLength={300}
               onChange={(event) => setComment(event.target.value)}
             />
-            <button className="icon-button" aria-label="Send comment">
+            <button className="icon-button" aria-label="Send comment" disabled={state.busy}>
               <Send size={18} />
             </button>
           </form>

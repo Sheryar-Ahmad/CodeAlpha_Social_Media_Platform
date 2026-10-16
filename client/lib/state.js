@@ -296,6 +296,24 @@ export function reducer(state, action) {
         ],
       };
     }
+    case 'collection.rename': {
+      if (
+        !boundedString(action.name, 30, true) ||
+        state.collections.some(
+          (item) =>
+            item.id !== action.id && item.name.toLowerCase() === action.name.trim().toLowerCase(),
+        )
+      )
+        return state;
+      return {
+        ...state,
+        collections: state.collections.map((item) =>
+          item.id === action.id ? { ...item, name: action.name.trim() } : item,
+        ),
+      };
+    }
+    case 'collection.delete':
+      return { ...state, collections: state.collections.filter((item) => item.id !== action.id) };
     case 'collection.assign': {
       if (
         !state.saved.includes(action.id) ||
@@ -335,6 +353,20 @@ export function reducer(state, action) {
         ),
       };
     }
+    case 'comment.delete':
+      return {
+        ...state,
+        posts: state.posts.map((post) =>
+          post.id !== action.id
+            ? post
+            : {
+                ...post,
+                comments: post.comments.filter(
+                  (item) => item.id !== action.commentId || item.authorId !== 'you',
+                ),
+              },
+        ),
+      };
     case 'profile':
       return validateProfile(action.name, action.bio)
         ? state
@@ -411,7 +443,10 @@ export function selectPosts(
     const author =
       post.authorId === 'you'
         ? state.profile
-        : people.find((person) => person.id === post.authorId);
+        : (state.people || people).find((person) => person.id === post.authorId) || {
+            name: 'Member',
+            handle: '',
+          };
     return (
       !term ||
       `${post.title || ''} ${post.text} ${post.topic} ${author.name} ${author.handle}`

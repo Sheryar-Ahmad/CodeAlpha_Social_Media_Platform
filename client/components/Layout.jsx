@@ -85,6 +85,7 @@ export default function Layout({
               value={query}
               placeholder="Search ideas, people…"
               autoComplete="off"
+              maxLength={100}
               onChange={(event) => onSearch(event.target.value)}
             />
             {query && (

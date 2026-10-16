@@ -4,7 +4,7 @@ import { mkdir, readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { initialState, LEGACY_STORAGE_KEY, STORAGE_KEY } from '../client/lib/state.js';
 
-const baseURL = 'http://127.0.0.1:4178';
+const baseURL = 'http://127.0.0.1:4178/demo';
 const server = spawn(
   process.execPath,
   ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '4178', '--strictPort'],

@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { ArrowUpRight, Check, Settings2, Sun, Moon, Plus } from 'lucide-react';
+import { ArrowUpRight, Check, Settings2, ShieldCheck, Sun, Moon, Plus } from 'lucide-react';
 import { people, topics, notifications } from '../data/seed.js';
 import { validateProfile } from '../lib/state.js';
 import { Avatar, FollowButton } from './ui.jsx';
 import { PageHeading } from './Feed.jsx';
+import { TopicIcon } from './Graphics.jsx';
 
-export function Explore({ state, onTopic, onFollow, query }) {
+export function Explore({ state, onTopic, onFollow, query, onPerson = null }) {
   const term = query.trim().toLowerCase();
-  const matches = people.filter(
+  const matches = (state.people || people).filter(
     (person) =>
       !term || `${person.name} ${person.handle} ${person.role}`.toLowerCase().includes(term),
   );
@@ -37,9 +38,15 @@ export function Explore({ state, onTopic, onFollow, query }) {
               <button
                 className="topic-card"
                 key={topic.name}
+                data-topic={topic.name}
                 onClick={() => onTopic(topic.name, true)}
               >
-                <img src={topic.image} alt="" width="500" height="350" />
+                <div className="topic-card-media">
+                  <img src={topic.image} alt="" width="500" height="350" />
+                  <span className="topic-card-symbol">
+                    <TopicIcon topic={topic.name} size={18} />
+                  </span>
+                </div>
                 <span>
                   <strong>{topic.name}</strong>
                   <ArrowUpRight size={18} />
@@ -61,13 +68,22 @@ export function Explore({ state, onTopic, onFollow, query }) {
               <article className="person-card" key={person.id}>
                 <Avatar person={person} />
                 <div>
-                  <h3>{person.name}</h3>
+                  <h3>
+                    {onPerson ? (
+                      <button className="author-name" onClick={() => onPerson(person.id)}>
+                        {person.name}
+                      </button>
+                    ) : (
+                      person.name
+                    )}
+                  </h3>
                   <p>{person.role}</p>
                 </div>
                 <FollowButton
                   person={person}
                   following={state.following.includes(person.id)}
                   onFollow={onFollow}
+                  pending={state.busy}
                 />
               </article>
             ))}
@@ -78,39 +94,87 @@ export function Explore({ state, onTopic, onFollow, query }) {
   );
 }
 
-export function Profile({ state, onEdit, onSettings, onCompose }) {
+export function Profile({
+  state,
+  onEdit,
+  onSettings,
+  onCompose,
+  person = null,
+  own = true,
+  onFollow,
+  onLogout,
+  onAccount,
+  error = '',
+}) {
+  if (!own && !person)
+    return (
+      <p className="muted" role="status">
+        {error ? 'This profile could not be loaded.' : 'Loading profile…'}
+      </p>
+    );
+  const profile = person || state.profile;
   return (
     <>
       <section className="profile-heading">
-        <Avatar person={state.profile} size="large" />
+        <Avatar person={profile} size="large" />
         <div className="profile-info">
           <p className="eyebrow">YOUR CREATIVE SPACE</p>
-          <h1>{state.profile.name}</h1>
-          <p className="profile-handle">@{state.profile.handle}</p>
-          <p className="profile-bio">{state.profile.bio}</p>
+          <h1>{profile.name}</h1>
+          <p className="profile-handle">@{profile.handle}</p>
+          <p className="profile-bio">{profile.bio}</p>
           <div className="profile-stats">
             <span>
-              <strong>{state.posts.filter((post) => post.authorId === 'you').length}</strong> posts
+              <strong>
+                {profile.postCount ?? state.posts.filter((post) => post.authorId === 'you').length}
+              </strong>{' '}
+              posts
             </span>
             <span>
-              <strong>{state.following.length}</strong> following
+              <strong>{own ? state.following.length : profile.followingCount}</strong> following
             </span>
             <span>
-              <strong>{state.saved.length}</strong> saved
+              <strong>{own ? state.saved.length : profile.followerCount}</strong>{' '}
+              {own ? 'saved' : 'followers'}
             </span>
           </div>
         </div>
         <div className="profile-actions">
-          <button className="secondary-button" onClick={onEdit}>
-            Edit profile
-          </button>
+          {!own ? (
+            <FollowButton
+              person={profile}
+              following={state.following.includes(profile.id)}
+              onFollow={onFollow}
+              pending={state.busy}
+            />
+          ) : (
+            <>
+              <button className="secondary-button" onClick={onEdit}>
+                Edit profile
+              </button>
+              {onLogout && (
+                <button className="secondary-button" onClick={onLogout} disabled={state.busy}>
+                  Sign out
+                </button>
+              )}
+            </>
+          )}
+          {own && onAccount && (
+            <button
+              className="icon-button"
+              onClick={onAccount}
+              aria-label="Account settings"
+              title="Account settings"
+            >
+              <ShieldCheck size={20} />
+            </button>
+          )}
           <button className="icon-button" onClick={onSettings} aria-label="Open preferences">
             <Settings2 size={20} />
           </button>
         </div>
       </section>
       <div className="section-heading">
-        <h2>Your work & ideas</h2>
+        <h2>{own ? 'Your work & ideas' : 'Work & ideas'}</h2>
         <button className="text-button" onClick={onCompose}>
           Create a post <Plus size={16} />
         </button>
@@ -119,8 +183,9 @@ export function Profile({ state, onEdit, onSettings, onCompose }) {
   );
 }
 
-export function Activity({ state, dispatch, onOpen, notify }) {
-  const unread = notifications.length - state.readNotifications.length;
+export function Activity({ state, dispatch, onOpen, onPerson, notify, mode = 'demo' }) {
+  const items = state.notifications || notifications;
+  const unread = items.length - state.readNotifications.length;
   return (
     <div className="activity-screen">
       <PageHeading
@@ -137,8 +202,8 @@ export function Activity({ state, dispatch, onOpen, notify }) {
         <button
           className="text-button"
           disabled={!unread}
-          onClick={() => {
-            dispatch({ type: 'read' });
+          onClick={async () => {
+            if (!(await dispatch({ type: 'read' }))) return;
             notify('All updates marked as read.');
           }}
         >
@@ -147,8 +212,10 @@ export function Activity({ state, dispatch, onOpen, notify }) {
         </button>
       </div>
       <section className="notification-list" aria-label="Activity updates">
-        {notifications.map((item) => {
-          const person = people.find((user) => user.id === item.personId);
+        {items.map((item) => {
+          const person = (state.people || people).find((user) => user.id === item.personId) || {
+            name: 'Former member',
+          };
           const isUnread = !state.readNotifications.includes(item.id);
           return (
             <article key={item.id} className={`notification-item ${isUnread ? 'unread' : ''}`}>
@@ -159,8 +226,11 @@ export function Activity({ state, dispatch, onOpen, notify }) {
                 </p>
                 <p className="notification-detail">{item.detail}</p>
                 <span>{item.time}</span>
-                <button className="text-button" onClick={() => onOpen(item.postId)}>
-                  View conversation <ArrowUpRight size={15} />
+                <button
+                  className="text-button"
+                  onClick={() => (item.postId ? onOpen(item.postId) : onPerson(person.id))}
+                >
+                  {item.postId ? 'View conversation' : 'View profile'} <ArrowUpRight size={15} />
                 </button>
               </div>
               {isUnread && <span className="unread-indicator" aria-label="Unread" />}
@@ -168,14 +238,20 @@ export function Activity({ state, dispatch, onOpen, notify }) {
           );
         })}
       </section>
-      <p className="demo-footnote">
-        Sample activity from fictional creators in this local preview.
-      </p>
+      {mode === 'demo' ? (
+        <p className="demo-footnote">
+          Sample activity from fictional creators in this local preview.
+        </p>
+      ) : (
+        items.length === 0 && (
+          <p className="muted">New follows, likes, and replies will appear here.</p>
+        )
+      )}
     </div>
   );
 }
 
-export function EditProfile({ profile, onSave }) {
+export function EditProfile({ profile, onSave, pending = false }) {
   const [name, setName] = useState(profile.name);
   const [bio, setBio] = useState(profile.bio);
   const [error, setError] = useState('');
@@ -213,8 +289,8 @@ export function EditProfile({ profile, onSave }) {
           {error}
         </p>
       )}
-      <button className="primary-button">
-        Save changes <Check size={17} />
+      <button className="primary-button" disabled={pending}>
+        {pending ? 'Saving…' : 'Save changes'} <Check size={17} />
       </button>
     </form>
   );
@@ -233,6 +309,7 @@ export function Preferences({ state, dispatch }) {
             key={name}
             className={state.theme === name ? 'chosen' : ''}
             aria-pressed={state.theme === name}
+            disabled={state.busy}
             onClick={() => dispatch({ type: 'theme', value: name })}
           >
             <Icon size={24} />
@@ -242,7 +319,8 @@ export function Preferences({ state, dispatch }) {
         ))}
       </div>
       <p className="input-hint">
-        Saved in this browser. Motion follows your device’s accessibility settings.
+        {state.profile.id ? 'Saved to your account.' : 'Saved in this browser.'} Motion follows your
+        device’s accessibility settings.
       </p>
     </div>
   );
@@ -259,6 +337,7 @@ export function Interests({ state, dispatch }) {
             <button
               key={topic.name}
               className={selected ? 'selected' : ''}
+              disabled={state.busy}
               aria-pressed={selected}
               onClick={() =>
                 dispatch({
@@ -293,7 +372,7 @@ export function Interests({ state, dispatch }) {
   );
 }
 
-export function NewCollection({ collections, onCreate }) {
+export function NewCollection({ collections, onCreate, pending = false }) {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   function submit(event) {
@@ -303,7 +382,7 @@ export function NewCollection({ collections, onCreate }) {
       return;
     }
     if (collections.length >= 20) {
-      setError('This demo supports up to 20 collections.');
+      setError('You can create up to 20 collections.');
       return;
     }
     if (collections.some((item) => item.name.toLowerCase() === name.trim().toLowerCase())) {
@@ -330,8 +409,8 @@ export function NewCollection({ collections, onCreate }) {
           {error}
         </p>
       )}
-      <button className="primary-button">
-        Create collection <Plus size={17} />
+      <button className="primary-button" disabled={pending}>
+        {pending ? 'Creating…' : 'Create collection'} <Plus size={17} />
       </button>
     </form>
   );

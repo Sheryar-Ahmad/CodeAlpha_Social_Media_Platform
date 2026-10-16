@@ -1,7 +1,16 @@
-import { Bookmark, Search, SlidersHorizontal, ArrowUpRight, Plus } from 'lucide-react';
+import {
+  Bookmark,
+  Search,
+  SlidersHorizontal,
+  ArrowUpRight,
+  Plus,
+  RefreshCw,
+  FolderCog,
+} from 'lucide-react';
 import { topics } from '../data/seed.js';
 import { EmptyState } from './ui.jsx';
 import PostCard from './PostCard.jsx';
+import { PerspectiveArt, TopicIcon } from './Graphics.jsx';
 
 export function PageHeading({ eyebrow, title, description, children }) {
   return (
@@ -28,6 +37,7 @@ export default function Feed({
   collection,
   onCollection,
   onNewCollection,
+  onManageCollections,
   onFilter,
   onTopic,
   onTune,
@@ -35,6 +45,12 @@ export default function Feed({
   onCompose,
   onExplore,
   showHeading = true,
+  loading = false,
+  hasMore = false,
+  onLoadMore,
+  onRefresh,
+  onPerson,
+  mode = 'demo',
 }) {
   const isHome = view === 'Home';
   const order = isHome ? filter : filter === 'Popular' ? 'Popular' : 'Latest';
@@ -47,15 +63,18 @@ export default function Feed({
     <>
       {showHeading &&
         (isHome ? (
-          <PageHeading
-            eyebrow="A COMMUNITY FOR CURIOUS PEOPLE"
-            title={
-              <>
-                Find your next <span>idea.</span>
-              </>
-            }
-            description="Share your work. Learn something new. Find your people."
-          />
+          <div className="feed-intro">
+            <PageHeading
+              eyebrow="A COMMUNITY FOR CURIOUS PEOPLE"
+              title={
+                <>
+                  Find your next <span>idea.</span>
+                </>
+              }
+              description="Share your work. Learn something new. Find your people."
+            />
+            <PerspectiveArt />
+          </div>
         ) : view === 'Bookmarks' ? (
           <PageHeading
             eyebrow="YOUR PERSONAL COLLECTION"
@@ -99,16 +118,28 @@ export default function Feed({
             {['All', ...topics.map((item) => item.name)].map((name) => (
               <button
                 key={name}
+                data-topic={name}
                 className={topic === name ? 'selected' : ''}
                 aria-pressed={topic === name}
                 onClick={() => onTopic(name)}
               >
+                <TopicIcon topic={name} />
                 {name === 'All' ? 'All work' : name}
               </button>
             ))}
           </div>
         )}
         <div className="feed-tools">
+          {onRefresh && (
+            <button
+              className="icon-button"
+              aria-label="Refresh community"
+              onClick={onRefresh}
+              disabled={loading}
+            >
+              <RefreshCw size={18} />
+            </button>
+          )}
           <label className="sort-select">
             <span className="sr-only">Feed order</span>
             <select value={order} onChange={(event) => onFilter(event.target.value)}>
@@ -125,6 +156,16 @@ export default function Feed({
               title="Tune your feed"
             >
               <SlidersHorizontal size={19} />
+            </button>
+          )}
+          {view === 'Bookmarks' && (
+            <button
+              className="icon-button"
+              onClick={onManageCollections}
+              aria-label="Manage collections"
+              title="Manage collections"
+            >
+              <FolderCog size={20} />
             </button>
           )}
           {view === 'Bookmarks' && (
@@ -149,11 +190,20 @@ export default function Feed({
             dispatch={dispatch}
             notify={notify}
             onOpen={onOpen}
+            onPerson={onPerson}
+            mode={mode}
             onTopic={(name) => onTopic(name, true)}
           />
         ))}
       </section>
-      {posts.length === 0 && (
+      {loading && (
+        <div className="feed-skeleton" role="status" aria-label="Loading perspectives">
+          <span />
+          <span />
+          <span />
+        </div>
+      )}
+      {!loading && posts.length === 0 && (
         <EmptyState
           icon={view === 'Bookmarks' ? Bookmark : Search}
           title={
@@ -174,7 +224,14 @@ export default function Feed({
           onAction={isProfile ? onCompose : onExplore}
         />
       )}
-      {posts.length > 0 && (
+      {hasMore && (
+        <div className="load-more">
+          <button className="secondary-button" onClick={onLoadMore} disabled={loading}>
+            {loading ? 'Loading…' : 'Load more perspectives'}
+          </button>
+        </div>
+      )}
+      {!loading && !hasMore && posts.length > 0 && (
         <div className="feed-end">
           <p>
             {posts.length} {posts.length === 1 ? 'perspective' : 'perspectives'}. What’s yours?

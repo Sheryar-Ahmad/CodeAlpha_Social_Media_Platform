@@ -24,7 +24,7 @@ export function Avatar({ person, size = 'normal' }) {
   );
 }
 
-export function Dialog({ title, children, onClose, className = '' }) {
+export function Dialog({ title, children, onClose, className = '', error = '' }) {
   const ref = useRef(null);
   const titleId = useId();
   useEffect(() => {
@@ -62,16 +62,22 @@ export function Dialog({ title, children, onClose, className = '' }) {
           <X size={21} />
         </button>
       </header>
+      {error && (
+        <p className="dialog-error form-error" role="alert">
+          {error}
+        </p>
+      )}
       {children}
     </dialog>
   );
 }
 
-export function FollowButton({ person, following, onFollow }) {
+export function FollowButton({ person, following, onFollow, pending = false }) {
   return (
     <button
       className={`follow-button ${following ? 'is-following' : ''}`}
       onClick={() => onFollow(person.id)}
+      disabled={pending}
       aria-pressed={following}
       aria-label={`${following ? 'Unfollow' : 'Follow'} ${person.name}`}
     >

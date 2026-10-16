@@ -14,6 +14,56 @@ import {
   LEGACY_STORAGE_KEY,
 } from '../client/lib/state.js';
 
+test('collection management preserves saves and rejects duplicate names in the preview', () => {
+  let state = initialState();
+  const id = state.posts[0].id;
+  state = reducer(state, { type: 'save', id });
+  state = reducer(state, { type: 'collection.assign', id, collectionId: 'ideas' });
+  const duplicate = reducer(state, { type: 'collection.rename', id: 'ideas', name: 'RESOURCES' });
+  assert.equal(duplicate, state);
+  state = reducer(state, { type: 'collection.rename', id: 'ideas', name: 'Project notes' });
+  assert.equal(state.collections.find((item) => item.id === 'ideas').name, 'Project notes');
+  state = reducer(state, { type: 'collection.delete', id: 'ideas' });
+  assert.ok(state.saved.includes(id));
+  assert.ok(!state.collections.some((item) => item.id === 'ideas'));
+  assert.ok(isValidState(state));
+});
+
+test('preview reply removal cannot remove another member’s reply', () => {
+  let state = initialState();
+  const id = state.posts[0].id;
+  state = reducer(state, {
+    type: 'comment',
+    id,
+    comment: {
+      id: 'own-reply',
+      authorId: 'you',
+      text: 'My reply.',
+      createdAt: new Date().toISOString(),
+    },
+  });
+  const before = state.posts[0].comments;
+  state = reducer(state, { type: 'comment.delete', id, commentId: 'own-reply' });
+  assert.deepEqual(
+    state.posts[0].comments,
+    before.filter((item) => item.id !== 'own-reply'),
+  );
+  const other = state.posts
+    .flatMap((post) => post.comments.map((comment) => ({ post, comment })))
+    .find((item) => item.comment.authorId !== 'you');
+  assert.ok(other);
+  state = reducer(state, {
+    type: 'comment.delete',
+    id: other.post.id,
+    commentId: other.comment.id,
+  });
+  assert.ok(
+    state.posts
+      .find((post) => post.id === other.post.id)
+      .comments.some((item) => item.id === other.comment.id),
+  );
+});
+
 test('empty and oversized posts are rejected; image-only posts require a description', () => {
   assert.ok(validatePost('  '));
   assert.ok(validatePost('x'.repeat(501)));

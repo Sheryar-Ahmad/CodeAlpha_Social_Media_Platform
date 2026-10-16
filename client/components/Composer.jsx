@@ -4,7 +4,7 @@ import { Avatar } from './ui.jsx';
 import { topics } from '../data/seed.js';
 import { MAX_IMAGE_SIZE, MAX_POST_LENGTH, validatePost } from '../lib/state.js';
 
-export default function Composer({ profile, onPublish, initialPost = null }) {
+export default function Composer({ profile, onPublish, initialPost = null, pending = false }) {
   const [title, setTitle] = useState(initialPost?.title || '');
   const [text, setText] = useState(initialPost?.text || '');
   const [image, setImage] = useState(initialPost?.image || null);
@@ -50,14 +50,20 @@ export default function Composer({ profile, onPublish, initialPost = null }) {
     }
   }
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
     const issue = validatePost(text, image, imageAlt, title);
     if (issue) {
       setError(issue);
       return;
     }
-    onPublish({ title: title.trim(), text: text.trim(), image, imageAlt: imageAlt.trim(), topic });
+    await onPublish({
+      title: title.trim(),
+      text: text.trim(),
+      image,
+      imageAlt: imageAlt.trim(),
+      topic,
+    });
   }
 
   return (
@@ -159,8 +165,9 @@ export default function Composer({ profile, onPublish, initialPost = null }) {
       )}
       <footer className="composer-footer">
         <p>Make it yours. Make it useful.</p>
-        <button className="primary-button" disabled={busy}>
-          {initialPost ? 'Save changes' : 'Publish post'} <ArrowUpRight size={17} />
+        <button className="primary-button" disabled={busy || pending}>
+          {pending ? 'Saving…' : initialPost ? 'Save changes' : 'Publish post'}{' '}
+          <ArrowUpRight size={17} />
         </button>
       </footer>
     </form>

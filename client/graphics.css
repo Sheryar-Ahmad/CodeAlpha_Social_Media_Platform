@@ -1,0 +1,422 @@
+/* Shared art direction: paper, ink, botanical forms, and an editorial collage. */
+.auth-brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.auth-mobile-mark {
+  display: none;
+}
+.feed-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  margin-bottom: 32px;
+}
+.feed-intro .page-heading {
+  margin-bottom: 0;
+}
+.feed-intro .eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.perspective-art {
+  position: relative;
+  width: 370px;
+  height: 206px;
+  flex: 0 0 370px;
+  isolation: isolate;
+}
+.art-orbit {
+  position: absolute;
+  width: 320px;
+  height: 160px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  transform: rotate(-24deg);
+  left: 20px;
+  top: 27px;
+}
+.art-card {
+  position: absolute;
+  overflow: hidden;
+  border-radius: 10px;
+  box-shadow: 0 12px 24px #332a2214;
+  transition: transform 260ms ease;
+}
+.art-photo {
+  width: 125px;
+  height: 166px;
+  left: 34px;
+  top: 17px;
+  transform: rotate(-12deg);
+  background: #d9e5e5;
+  border: 5px solid #fff;
+}
+.art-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.art-photo span {
+  position: absolute;
+  bottom: 12px;
+  left: 8px;
+  right: 8px;
+  font-size: 7px;
+  color: #fff;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 7px #111;
+}
+.art-idea {
+  width: 173px;
+  height: 188px;
+  top: 6px;
+  left: 151px;
+  transform: rotate(8deg);
+  background: #e7edb6;
+  color: #313b2a;
+  padding: 20px;
+}
+.art-idea > span {
+  display: block;
+  font-size: 6px;
+  font-weight: 600;
+  letter-spacing: 1.3px;
+}
+.art-idea strong {
+  display: block;
+  font-size: 31px;
+  letter-spacing: -1.6px;
+  margin-top: 7px;
+  font-weight: 650;
+}
+.art-idea svg {
+  position: absolute;
+  width: 87px;
+  height: 87px;
+  right: 14px;
+  bottom: 26px;
+  color: #586548;
+  --flower-center: #e7edb6;
+}
+.art-idea small {
+  position: absolute;
+  bottom: 15px;
+  font-size: 6px;
+  letter-spacing: 1px;
+}
+.art-stamp {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 69px;
+  height: 69px;
+  left: 97px;
+  top: 131px;
+  border-radius: 50%;
+  background: #db4d32;
+  border: 4px solid var(--canvas);
+  color: #fff8ed;
+  transform: rotate(-10deg);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.1;
+  letter-spacing: -0.2px;
+}
+.art-cross {
+  position: absolute;
+  right: 5px;
+  top: 3px;
+  color: var(--accent);
+  font-size: 30px;
+  font-weight: 300;
+}
+.art-dot {
+  position: absolute;
+  right: 12px;
+  bottom: 18px;
+  width: 7px;
+  height: 7px;
+  background: #b6a0ce;
+  border-radius: 50%;
+}
+.perspective-art:hover .art-photo {
+  transform: rotate(-16deg) translateX(-3px);
+}
+.perspective-art:hover .art-idea {
+  transform: rotate(11deg) translateY(-4px);
+}
+.auth-artwork {
+  width: 100%;
+  height: 260px;
+  margin-top: 35px;
+}
+.auth-artwork .art-photo {
+  width: 42%;
+  height: 218px;
+  left: 5%;
+}
+.auth-artwork .art-idea {
+  left: 45%;
+  width: 46%;
+  height: 238px;
+  padding: 25px;
+}
+.auth-artwork .art-idea strong {
+  font-size: 44px;
+}
+.auth-artwork .art-idea svg {
+  width: 120px;
+  height: 120px;
+  bottom: 32px;
+  right: 25px;
+}
+.auth-artwork .art-idea > span {
+  font-size: 7px;
+}
+.auth-artwork .art-idea small {
+  font-size: 7px;
+  bottom: 20px;
+}
+.auth-artwork .art-stamp {
+  left: 33%;
+  top: 176px;
+  width: 82px;
+  height: 82px;
+  font-size: 14px;
+}
+.auth-artwork .art-orbit {
+  width: 92%;
+  height: 195px;
+}
+
+/* A topic supplies a coordinated paper/ink pair to text posts and small labels. */
+[data-topic] {
+  --topic-paper: #ece4f3;
+  --topic-ink: #4d3a66;
+  --topic-line: #b59dcb;
+}
+[data-topic='Photography'] {
+  --topic-paper: #dde9ec;
+  --topic-ink: #264b59;
+  --topic-line: #8bafba;
+}
+[data-topic='Technology'] {
+  --topic-paper: #e0e7f6;
+  --topic-ink: #304369;
+  --topic-line: #9baed5;
+}
+[data-topic='Everyday'] {
+  --topic-paper: #e2e9da;
+  --topic-ink: #405238;
+  --topic-line: #a2b695;
+}
+[data-topic='Learning'] {
+  --topic-paper: #f1edcf;
+  --topic-ink: #5c502a;
+  --topic-line: #c8b876;
+}
+[data-topic='Career'] {
+  --topic-paper: #f2e0d5;
+  --topic-ink: #70432e;
+  --topic-line: #c79579;
+}
+.topic-tabs [data-topic]:not(.selected):hover {
+  background: var(--topic-paper);
+  color: var(--topic-ink);
+}
+.post-card .topic-link {
+  background: var(--topic-paper);
+  color: var(--topic-ink);
+  padding: 5px 8px;
+  border-radius: 999px;
+}
+.note-pattern {
+  position: absolute;
+  width: 155px;
+  height: 155px;
+  right: -24px;
+  bottom: -31px;
+  color: var(--topic-line);
+  opacity: 0.4;
+  --flower-center: var(--topic-paper);
+  pointer-events: none;
+}
+.note-heading {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 22px;
+  position: relative;
+  z-index: 1;
+}
+.note-heading span {
+  font-size: 8px;
+  letter-spacing: 1.8px;
+  font-weight: 600;
+}
+.note-footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: auto;
+  padding-top: 18px;
+  position: relative;
+  z-index: 1;
+}
+.note-footer span {
+  font-size: 9px;
+  font-weight: 600;
+}
+.media-open-hint {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fffffff2;
+  color: #262626;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 180ms,
+    transform 180ms;
+  pointer-events: none;
+}
+.post-card:hover .media-open-hint,
+.post-card:focus-within .media-open-hint {
+  opacity: 1;
+  transform: none;
+}
+.topic-card-media {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.topic-card-media img {
+  margin-bottom: 0;
+  border-radius: 0;
+  transition: transform 300ms;
+}
+.topic-card-media img[src$='.svg'] {
+  object-fit: contain;
+}
+.topic-card[data-topic='Design'] .topic-card-media {
+  background: #f1472e;
+}
+.topic-card[data-topic='Technology'] .topic-card-media {
+  background: #e9e8e4;
+}
+.topic-card[data-topic='Learning'] .topic-card-media {
+  background: #d4e2ed;
+}
+.topic-card:hover .topic-card-media img {
+  transform: scale(1.04);
+}
+.topic-card-symbol {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #ffffff99;
+  border-radius: 10px;
+  background: #fffffff0;
+  color: #282828;
+}
+.auth-card {
+  background: var(--surface);
+  box-shadow: 0 14px 45px #30271b05;
+}
+[data-theme='dark'] .post-card {
+  box-shadow: none;
+}
+[data-theme='dark'] .text-study {
+  background: var(--topic-paper);
+  color: var(--topic-ink);
+}
+
+@media (max-width: 1180px) {
+  .feed-intro > .perspective-art {
+    display: none;
+  }
+  .feed-intro .page-heading h1 {
+    font-size: 52px;
+  }
+}
+@media (max-width: 900px) {
+  .auth-artwork {
+    height: 215px;
+  }
+  .auth-artwork .art-photo {
+    height: 175px;
+  }
+  .auth-artwork .art-idea {
+    height: 195px;
+    padding: 15px;
+  }
+  .auth-artwork .art-idea strong {
+    font-size: 30px;
+  }
+  .auth-artwork .art-idea svg {
+    width: 85px;
+    height: 85px;
+    right: 15px;
+  }
+  .auth-artwork .art-stamp {
+    top: 136px;
+    width: 69px;
+    height: 69px;
+    font-size: 12px;
+  }
+}
+@media (max-width: 620px) {
+  .auth-mobile-mark {
+    display: block;
+    width: 32px;
+    height: 32px;
+    color: var(--accent);
+    --flower-center: var(--canvas);
+  }
+  .feed-intro {
+    margin-bottom: 28px;
+  }
+  .feed-intro .page-heading h1 {
+    font-size: 41px;
+  }
+  .auth-artwork {
+    display: none;
+  }
+  .note-pattern {
+    width: 170px;
+    height: 170px;
+  }
+  .note-heading span {
+    font-size: 9px;
+  }
+  .note-footer span {
+    font-size: 10px;
+  }
+}
+@media (max-width: 360px) {
+  .feed-intro .page-heading h1 {
+    font-size: 36px;
+  }
+}
