@@ -2,7 +2,7 @@
 
 **Find your next idea.** A visual social platform for sharing work, learning, useful resources, and everyday perspectives.
 
-Version **0.5.1** adds a free-hosting configuration with durable Cloudinary photos and Brevo HTTPS email. Verification, recovery, blocking, private reports, moderation, account closure, shared posts, replies, follows, reactions, private collections and activity are available. The browser-only preview is at `/demo`.
+Version **0.6** adds Vercel serverless hosting with durable jobs, protected daily maintenance and shared rate limits. Cloudinary stores photos and Brevo sends email over HTTPS. Verification, recovery, blocking, reports, moderation, account closure, shared posts, replies, follows, reactions, private collections and activity are available. The browser-only preview is at `/demo`.
 
 ## Run locally
 
@@ -57,7 +57,7 @@ To use your own MongoDB instance instead, copy `.env.example` to `.env`, set `MO
 
 Start with the [plain-language code guide](docs/CODE_GUIDE.md). See also [backend decisions](docs/BACKEND.md), [roadmap](docs/PLAN.md), and [verification](docs/VERIFICATION.md).
 
-Launch instructions are in [deployment](docs/DEPLOYMENT.md); moderation and data retention are in [community rules](docs/COMMUNITY.md). The included `render.yaml` is an undeployed **free-only** configuration: Render Free, MongoDB Atlas Free, Cloudinary Free and Brevo Free. It requires service accounts and private environment settings; no paid disk is configured. Render sleeps when idle and provider quotas apply.
+Launch instructions are in [deployment](docs/DEPLOYMENT.md); moderation and retention are in [community rules](docs/COMMUNITY.md). `vercel.json` prepares **Vercel Hobby** for a personal, non-commercial project, with Atlas, Cloudinary and Brevo free services. Run `npm run prepare:vercel` to create an ignored private environment import file. Quotas apply; no hosting deployment or paid resources have been created.
 
 ## Feed behavior
 
@@ -95,13 +95,15 @@ Profiles, posts, replies, likes, and follows are visible to authenticated member
 
 From Profile, open the shield icon labeled **Account settings** to change your password, manage up to 20 sessions, or download your data. In Saved, use **Manage collections** to rename or remove a collection. Removing a collection keeps its posts saved.
 
-Email verification, recovery, blocking, reports, moderation and account closure are implemented and tested locally. Hosted email, database, photo persistence, backups/monitoring and final live checks still need service setup. Direct messages and real-time delivery are future features. No public deployment has been performed.
+Email verification, recovery, blocking, reports, moderation and closure are implemented and tested locally. Atlas connectivity, Cloudinary upload/delivery/deletion, and one Brevo inbox delivery were verified during service setup. Production network access, Vercel deployment, backup/monitoring and final hosted checks remain. Direct messages and real-time delivery are future features.
 
 `/demo` keeps existing browser data separate; it does not import it into an account. The preview retains its 200-post limit and browser storage warnings. Clearing browser data resets only the preview, while server data is managed separately.
 
 ## Production configuration
 
-Build with `npm run build`, configure `MONGODB_URI`, `NODE_ENV=production`, the exact HTTPS `APP_ORIGIN`, Cloudinary storage and Brevo email settings, then run `npm start`. Express serves the client and API together. See [the step-by-step deployment guide](docs/DEPLOYMENT.md). Local file storage and SMTP remain available for compatible hosts. Set `TRUST_PROXY_HOPS` only to the actual number of trusted proxy hops. `npm run preview` serves only the static client and is not the shared application server.
+For Vercel, import the repository with the committed `vercel.json` and private Production settings described in [deployment](docs/DEPLOYMENT.md). Vite serves the frontend and `api/index.js` serves Express under the same domain. Successful requests run bounded mail/cleanup work with `waitUntil`; a protected once-daily cron catches up on idle work. Vercel uses a small connection pool and MongoDB-backed rate limits. Its changing outbound addresses require explicit provider network setup.
+
+For a persistent Node host, build with `npm run build`, set the documented production environment and run `npm start`. Local file storage and SMTP remain available on compatible hosts. Set `TRUST_PROXY_HOPS` only to the actual trusted proxy count. `npm run preview` serves only the static client and is not the shared application server.
 
 Use an authenticated MongoDB service, persistent upload storage, backups, monitoring, and the remaining release controls before public launch. The automatic loopback development database is not a production database. Follow the [MongoDB security checklist](https://www.mongodb.com/docs/manual/administration/security-checklist/). No deployment has been performed.
 

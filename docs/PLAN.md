@@ -12,6 +12,7 @@ Help people share work, learn together, collect useful references, and have clea
 4. Password changes with old-session revocation; individual and bulk session controls; personal data export; collection rename/removal; own-reply removal; a code guide and GitHub test/build workflow.
 5. Email verification and password recovery, durable mail jobs, mutual blocking, private reporting, moderator decisions and suspension, account closure with retryable cleanup, community rules, and a prepared deployment configuration.
 6. Free-only hosting configuration, signed Cloudinary photo uploads/deletions, Brevo HTTPS mail, provider-failure tests and a service-by-service launch guide. Live accounts and deployment are still required.
+7. Vercel API adapter, request-lifetime jobs, protected daily maintenance, shared rate limits, private environment-file preparation, and isolated serverless tests. Atlas, Cloudinary and one Brevo inbox delivery are verified locally.
 
 See [backend architecture](BACKEND.md) and [verification](VERIFICATION.md). The local preview remains at `/demo`; the root application uses server accounts.
 
@@ -26,4 +27,4 @@ See [backend architecture](BACKEND.md) and [verification](VERIFICATION.md). The 
 | Hosted release          | Persistent MongoDB and media storage, HTTPS, backups, distributed limits, monitoring, deployment smoke tests         |
 | Accessibility and scale | Assistive-technology review, Firefox/Safari checks, load tests, and relation-model migration when volume warrants it |
 
-Implement each milestone with a clear acceptance check and simple modules. No external service accounts have been created and no hosted deployment has been performed.
+Implement each milestone with a clear acceptance check and simple modules. The user has configured the three data/media/mail service accounts. Vercel import, provider network settings and hosted acceptance checks remain; no public deployment has been performed.

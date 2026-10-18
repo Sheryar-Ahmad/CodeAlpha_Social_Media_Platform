@@ -40,6 +40,10 @@ Version 0.5.1 supports Cloudinary storage and Brevo HTTPS delivery without addit
 
 Account closure marks the account inactive before background work. `services/accountRemoval.js` processes bounded repeatable batches after a short grace period. `postRemoval.js` queues photo deletion before clearing content and reconciles saved references. The worker retries failed file removal and leaves a minimal anonymous account record. See [retention](COMMUNITY.md) and [deployment/operations](DEPLOYMENT.md). Cross-document cleanup is eventually consistent rather than a single transaction.
 
-Hosted provider setup, backup/restore validation, direct messaging, real-time delivery and production deployment remain outstanding.
+Version 0.6 adds `api/index.js` and `server/serverless.js` for Vercel. The API keeps a warm connection pool, returns responses before bounded jobs, and registers their promises through `waitUntil`. It starts no listener/timer on Vercel. A Bearer-protected once-daily cron runs a larger catch-up batch. Mail claims are leased and removal is repeatable across instances. Provider jobs may still be interrupted by runtime limits and resume on another request/cron.
+
+`rateLimit.js` uses atomic MongoDB counters for serverless instances, with hashed keys and expiry. Local Node uses the existing memory limits. `vercel.json` routes the frontend and API under one origin and gives static HTML its own security headers; static image policy allows the Cloudinary host, while API middleware restricts the configured cloud path. `scripts/prepareVercel.js` creates an ignored private Production import file without changing local mail mode or contacting providers.
+
+Provider connectivity and one inbox delivery were checked locally. Vercel deployment/network access, backup restoration, direct messaging and real-time delivery remain outstanding.
 
 References: [Express security](https://expressjs.com/en/advanced/best-practice-security/), [OWASP password storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html), [MongoDB atomic writes](https://www.mongodb.com/docs/manual/core/transactions/), and [Mongoose connections](https://mongoosejs.com/docs/connections.html).

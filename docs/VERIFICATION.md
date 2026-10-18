@@ -1,10 +1,11 @@
-# Forma 0.5.1 verification
+# Forma 0.6 verification
 
-Checked on 18 October 2026 with Node.js 20.19.2, installed MongoDB 9.0.2, and headless Microsoft Edge.
+Checked on 19 October 2026 with Node.js 20.19.2, installed MongoDB 9.0.2, and headless Microsoft Edge. Hosted CI also runs Chromium on Linux.
 
 ## Automated checks
 
-- `npm test`: 58 tests pass (21 state tests and 37 API/provider tests).
+- `npm test`: 64 tests pass (21 state tests and 43 API/provider/serverless tests).
+- Serverless checks cover mail delivery after a response without interval workers, concurrent mail claims, authenticated daily maintenance, closure completion, shared atomic rate counters, HTTP rate limits across app instances, expiry before TTL deletion, sanitized connection failures/reconnection, and trusted production-origin resolution. They use isolated MongoDB and test transports, not real email recipients.
 - Cloud provider checks simulate signed uploads, ownership-restricted deletion, provider errors, CDN invalidation requests, WebP conversion without local files, app recreation with retained URLs, retryable deletion, HTTPS mail, private provider credentials and configured image security policy. These do not call real providers or prove live credentials/delivery.
 - Identity tests cover unverified publishing restrictions, hashed verification tokens, explicit single-use confirmation, uniform recovery responses, concurrent reset attempts, expired links, password-change invalidation, session revocation, delivery retries, preview mail, and production SMTP requirements.
 - Safety tests cover mutual block visibility across direct profiles/posts, feeds, search, replies and activity; blocked interactions; private deduplicated reports; role enforcement; review leases; moderator removal with saved/photo cleanup; suspension; credential-confirmed closure; immediate hiding; repeatable cleanup; retained-file protection; and unaffected accounts.
@@ -29,4 +30,6 @@ The 16 October graphics refresh adds the reusable collage, botanical and geometr
 
 ## Boundaries
 
-Firefox/Safari, screen-reader use, a formal accessibility audit, load testing, actual SMTP/Brevo delivery, live Cloudinary operations, hosted persistence, backup restoration and hosted deployment remain unverified. The GitHub workflow runs API/state tests, the build and all three browser suites with Chromium; hosted results are available in the repository's Actions tab. Verification/recovery, reporting/moderation and account closure are implemented and tested locally. Direct messages and real-time delivery remain future features. The free-only `render.yaml` and [deployment instructions](DEPLOYMENT.md) are prepared but have not provisioned resources. See [the release roadmap](PLAN.md).
+On 19 October, the separate Forma Atlas database connection and application indexes were verified. A tiny live Cloudinary WebP uploaded, loaded and was deleted with CDN invalidation requested. One explicitly approved Brevo test message was accepted and its inbox arrival confirmed by the user. No test credentials or recipient addresses are recorded here.
+
+Vercel build/routing behavior, deployed provider networking, registration/recovery on the deployed domain, cron execution, hosted persistence, backup restoration, Firefox/Safari, screen-reader use, a formal accessibility audit and load testing remain unverified. The GitHub workflow runs API/state tests, the build and all three Chromium browser suites. Direct messages and real-time delivery remain future features. `vercel.json` and [deployment instructions](DEPLOYMENT.md) are prepared but no hosted deployment has been performed. See [the release roadmap](PLAN.md).

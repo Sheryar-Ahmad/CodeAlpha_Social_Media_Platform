@@ -1,97 +1,80 @@
-﻿# Launch Forma using free services
+﻿# Deploy Forma on Vercel Hobby
 
-The setup uses **free plans only**. No accounts, cloud resources or deployment have been created. Select free plans rather than paid trials; do not enable automatic paid upgrades. Verify the plan shown before creating any resource.
+Forma now has a Vite frontend and one Node API function on the same Vercel project. MongoDB Atlas stores data and jobs, Cloudinary stores photos, and Brevo sends email over HTTPS. The existing local Node development server remains available.
 
-## Services
+This setup uses **Vercel Hobby for a personal, non-commercial project**, plus the existing free service accounts. Quotas apply; no paid plan, hosting deployment, or billing change has been created. Do not select a Pro trial. See [Hobby](https://vercel.com/docs/plans/hobby) and [function limits](https://vercel.com/docs/functions/limitations).
 
-| Service                              | Purpose                                                | Free-plan boundary                                                                                                                            |
-| ------------------------------------ | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Render Free                          | Express, React and background jobs on one HTTPS origin | Sleeps after 15 idle minutes; waking takes about a minute. Free hours, bandwidth and build limits apply. No persistent disk or outbound SMTP. |
-| MongoDB Atlas Free                   | Accounts, sessions, posts, reports and durable jobs    | 512 MB includes data and indexes; connection and transfer limits apply.                                                                       |
-| Cloudinary Image and Video APIs Free | Durable photo storage and CDN delivery                 | 25 shared monthly credits cover storage, bandwidth and transformations. Choose the API free plan, not the separate DAM trial.                 |
-| Brevo Free                           | Verification and recovery email over HTTPS             | Up to 300 sends per day; sender verification and transactional-sending activation required.                                                   |
+## How the serverless deployment works
 
-Sources checked 18 October 2026: [Render Free](https://render.com/docs/free), [SMTP restriction](https://render.com/changelog/free-web-services-will-no-longer-allow-outbound-traffic-to-smtp-ports), [Atlas limits](https://www.mongodb.com/docs/atlas/reference/free-shared-limitations/), [Atlas storage](https://www.mongodb.com/docs/atlas/manage-clusters/), [Cloudinary pricing](https://cloudinary.com/pricing), [Brevo limits](https://help.brevo.com/hc/en-us/articles/208580669-FAQs-What-are-the-limits-of-the-Free-plan).
+- `vercel.json` builds Vite and serves `dist` through the CDN. `/api/*` routes to `api/index.js`; `/demo` serves the browser preview. Security headers cover the static client. API headers additionally restrict photos to the configured cloud path.
+- The API reuses a small MongoDB connection pool across warm requests. It does not start `server/index.js`, listen on a port, or start interval workers.
+- Successful API responses schedule small mail/cleanup batches with Vercel `waitUntil`. Mail remains queued durably before the response, and leases prevent concurrent duplicate claims. Tasks share the function deadline and may be interrupted; later requests retry unfinished work.
+- A protected daily cron at `/api/maintenance` catches up on idle work. Hobby permits once-daily schedules, so idle cleanup/retries can wait until the next daily run. Large backlogs may need more batches. The 03:00 UTC schedule is not an exact-time guarantee.
+- Atomic rate limits live in MongoDB on Vercel, rather than being reset by each new function instance. Counters store hashed keys and expire automatically. Local development keeps memory limits.
 
-This supports a low-traffic project with sleep and quota limits. Jobs remain in MongoDB during sleep/restarts and resume when the service wakes. Do not use artificial traffic to bypass sleep. If a quota is exhausted, pause usage or wait for its reset rather than buying an upgrade automatically.
+Sources: [waitUntil](https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package), [Hobby cron limits](https://vercel.com/docs/cron-jobs/usage-and-pricing), [Vite](https://vercel.com/docs/frameworks/frontend/vite).
 
-## 1. MongoDB Atlas Free
+## 1. Prepare private settings
 
-Create an [Atlas account](https://www.mongodb.com/cloud/atlas/register), choose a **Free** cluster, and prefer a region near Singapore. Create a database user with read/write access limited to the `forma` database. Store the driver connection URI privately with `/forma` as the database name. Follow Atlas instructions for percent-encoding special characters in credentials.
+The Atlas connection, Cloudinary upload/delivery/deletion, and a single Brevo email delivery were verified during local setup on 19 October 2026. These checks do not establish Vercel connectivity or a completed hosted application.
 
-In Network Access, allow the Render service's outbound IP ranges once it exists. Temporarily allow your current IP if using the moderator CLI locally. Avoid broadly opening access as a shortcut. See [Atlas connection setup](https://www.mongodb.com/docs/atlas/connect-your-application/) and [Render outbound addresses](https://render.com/docs/outbound-ip-addresses).
+From the project directory run:
 
-## 2. Cloudinary Free
-
-Choose **Image and Video APIs Free**, then obtain the cloud name, API key and API secret from the product environment's API settings. These belong only in private server settings: never React, `VITE_*` variables, Git, screenshots or chat. No unsigned upload preset is needed.
-
-Forma validates and converts photos to bounded WebP files before signed HTTPS uploads. Public IDs use UUID names under `forma/`. Posts store public CDN URLs, so restarting Render does not lose photos. Deletion jobs target matching UUID assets in the configured cloud and request CDN invalidation. Keep the cloud identity stable; changing it requires migrating photos and pending jobs. Existing local disk photos are not automatically migrated.
-
-## 3. Brevo Free
-
-Create a [Brevo](https://www.brevo.com/) free account, activate transactional sending, verify a sender email address you control, and generate an API key. Use an API key rather than an SMTP password. `MAIL_FROM` must be the plain verified email address; Forma supplies its display name.
-
-A paid domain is not required by this project configuration. Brevo may replace a free-mailbox or unauthenticated sender with a compliant address. Follow its approval instructions and test delivery. See [sender setup](https://help.brevo.com/hc/en-us/articles/208836149-Create-a-new-sender-From-name-and-From-email), [sender requirements](https://help.brevo.com/hc/en-us/articles/14925263522578-Comply-with-Gmail-Yahoo-and-Microsoft-s-requirements-for-email-senders), and [HTTPS API](https://developers.brevo.com/reference/send-transac-email).
-
-Render Free blocks SMTP ports; `MAIL_MODE=brevo` uses HTTPS instead. Local development keeps private file previews and sends no real email.
-
-## 4. Render Free
-
-Connect the GitHub repository to [Render](https://render.com/). The committed `render.yaml` selects `plan: free`, Node 24, Singapore, manual deployments and `/api/health`, with **no disk or paid service**. Review the displayed plan before creating it. If the Blueprint flow is unavailable, create a Web Service manually:
-
-```text
-Runtime: Node
-Instance: Free
-Build: npm ci --include=dev --no-fund && npm run build
-Start: npm start
-Health check: /api/health
-Automatic deployments: Off
+```powershell
+npm run prepare:vercel
 ```
 
-Enter these directly in Render's private Environment settings, never Git or chat:
+This reads the ignored local `.env`, validates required configuration, generates a private maintenance secret, and writes **`.data/vercel.env`** for import. It does not send emails or deploy anything. The file contains credentials; import it directly into Vercel rather than sharing it or committing it. `.data/`, `.env` and Vercel's local settings folder are ignored by Git and deployment uploads.
 
-| Variable                 | Value                                                       |
-| ------------------------ | ----------------------------------------------------------- |
-| `NODE_ENV`               | `production`                                                |
-| `NODE_VERSION`           | `24`                                                        |
-| `APP_ORIGIN`             | Exact assigned HTTPS Render URL, no trailing slash or path  |
-| `MONGODB_URI`            | Private Atlas URI for `forma`                               |
-| `TRUST_PROXY_HOPS`       | `1` for this direct Render setup; recheck if adding proxies |
-| `SEED_STARTER_CONTENT`   | `false`                                                     |
-| `REQUIRE_VERIFIED_EMAIL` | `true`                                                      |
-| `MEDIA_STORE`            | `cloudinary`                                                |
-| `CLOUDINARY_CLOUD_NAME`  | Cloudinary cloud name                                       |
-| `CLOUDINARY_API_KEY`     | Private Cloudinary API key                                  |
-| `CLOUDINARY_API_SECRET`  | Private Cloudinary API secret                               |
-| `MAIL_MODE`              | `brevo`                                                     |
-| `BREVO_API_KEY`          | Private Brevo API key                                       |
-| `MAIL_FROM`              | Verified sender email address                               |
+The import file sets `NODE_ENV=production`, `MEDIA_STORE=cloudinary`, `MAIL_MODE=brevo`, `TRUST_PROXY_HOPS=1`, verification on, sample seeding off, plus your six service settings and `CRON_SECRET`. The frontend gets no `VITE_*` credentials. Local preview mail remains unchanged.
 
-If the assigned URL is initially unknown, set the actual `APP_ORIGIN` and restart before testing accounts. Allow Render's outbound ranges in Atlas, deploy the latest passing commit, and check `/api/health` returns HTTP 200 with `{"status":"ok"}`. Database outages return 503. Health does not validate email delivery or provider quotas.
+## 2. Connect GitHub and import
 
-Keep the frontend and API together on Render. A separate Vercel frontend adds cross-origin session configuration without helping this setup. `npm run preview` serves only the static client, not the shared application.
+1. Sign up/log in to [Vercel](https://vercel.com/) with GitHub. Choose the personal **Hobby** plan.
+2. Import `Sheryar-Ahmad/CodeAlpha_Social_Media_Platform`. Use the repository root; this repository contains only Forma.
+3. Keep framework **Vite**, build `npm run build`, output `dist`, and Node **24.x**. The committed install command includes build dependencies. `/api/index.js` must be deployed along with the client; this is not a frontend-only deployment.
+4. Import `.data/vercel.env` into **Production** environment variables. If the creation screen applies imports to all environments, adjust the scopes in Project Settings before allowing preview deployment access. Do not give preview deployments the production database or live mail key.
+5. Keep automatic system environment variables exposed. The server derives its canonical origin from `VERCEL_PROJECT_PRODUCTION_URL` only in a production Vercel environment. You can set `APP_ORIGIN` explicitly to the exact HTTPS production URL if needed. Origins must have no trailing slash or path. The server never trusts an incoming Host header or an arbitrary preview URL for this value.
+6. Deploy the latest passing commit. Verify the frontend loads and `/api/health` returns HTTP 200 with `{"status":"ok"}` after network access is configured below.
 
-## First moderator without a paid shell
+Use the canonical production domain for sign-in and email links. Hash routes stay client-side. Preview APIs deliberately fail closed without separate preview configuration. Protect previews through Vercel's available deployment settings. See [environment scopes](https://vercel.com/docs/environment-variables) and [system variables](https://vercel.com/docs/environment-variables/system-environment-variables).
 
-Render Free has no interactive service shell. Register and verify your real account on the deployed site. On your computer, temporarily set `MONGODB_URI` in the ignored local `.env` to the Atlas URI, allow your current IP in Atlas, and run from the project directory:
+## 3. Configure provider network access
+
+Vercel Hobby uses **changing outbound IP addresses**, so approving your computer's IP alone does not allow the deployed API. Fixed outbound IP services are outside this free-only setup. See [Vercel outbound networking](https://vercel.com/kb/guide/how-to-allowlist-deployment-ip-address).
+
+### MongoDB Atlas
+
+In the **Forma project only**, Network Access must accept Vercel's dynamic connections. The standard free setup uses `0.0.0.0/0` (Allow Access from Anywhere). This permits network connection attempts from the internet; MongoDB authentication and TLS are still required. Use a dedicated database user limited to read/write on `forma`, rather than using an Atlas Admin role for the application. Do not change Orbit's project or cluster. If you require a fixed IP allowlist, this deployment arrangement needs a different network solution and should not be treated as ready.
+
+No Atlas network/security setting is changed by the preparation script. Make the network choice explicitly in Atlas. See [Atlas IP access lists](https://www.mongodb.com/docs/atlas/security/ip-access-list/) and [Atlas/Vercel integration](https://www.mongodb.com/docs/atlas/reference/partner-integrations/vercel/).
+
+### Brevo
+
+The local test approved only the computer's IP. Brevo's unknown-IP blocking can therefore reject Vercel requests even when the key is correct. In Brevo Settings → Security → Authorized IPs, review its automatic authorization options. For unrestricted dynamic egress, API access must not rely on a fixed IP allowlist; disabling unknown-IP blocking removes that extra restriction while keeping API-key authentication. Make this security choice explicitly in Brevo; the preparation script does not change it. Do not repeatedly approve arbitrary unknown IPs without identifying the deployment request.
+
+See [Brevo IP security](https://developers.brevo.com/docs/ip-security). The key needs Transactional email access; unrelated permissions can remain None. Keep the verified sender as `MAIL_FROM`. Brevo can rewrite a free-mailbox sender address, as observed in the inbox delivery test.
+
+## Maintenance, data and limits
+
+`CRON_SECRET` authenticates the maintenance endpoint through a Bearer header. Vercel supplies this for its production cron. A bare browser request should return 401. The same secret must be present in Production settings; do not publish or embed it in client code. Monitor cron status and function errors in Vercel.
+
+Photo uploads retain their 2 MB input limit and are converted to WebP before upload. Their JSON/base64 requests stay below Vercel's 4.5 MB request limit. Downloaded exports can grow larger than the response limit; verify large exports before assuming they work on the host. Media URLs are public; removal requests CDN invalidation, which takes time and cannot recall downloaded copies.
+
+Watch Atlas storage/connection usage, Cloudinary credits, Brevo daily sends, and Vercel usage. A quota or function timeout can interrupt work; bounded jobs remain pending for later requests/cron. Review stuck `deleting` accounts, `mediadeletions` and failed mail jobs. Errors log types/status codes, not credentials or email bodies. Do not upgrade a service automatically to bypass limits.
+
+Confirm backup features on the actual Atlas Free cluster. Its [free backup preview](https://www.mongodb.com/docs/atlas/backup/cloud-backup/free-cluster-backup/) may not be available. Otherwise arrange encrypted local `mongodump` archives and private photo copies; no paid backup worker is created. Pause writes/jobs for consistent recovery points, test restores in isolated storage, and publish the actual retention period. Restores must reapply later account closures/moderation decisions before reopening traffic. Code rollback does not undo data changes.
+
+## First moderator
+
+Register and verify your account on the deployed production domain. Use your local project, whose private `.env` points to Forma Atlas, and allow your current IP if needed:
 
 ```powershell
 npm run moderator -- grant your_handle
 ```
 
-Only an existing verified account can be promoted. Reload the deployed app, then open Profile → Account settings → Open moderation queue. Restore the local development configuration afterwards if needed. Operators can also `revoke your_handle` or `restore suspended_handle`; restoration does not restore sessions. No default moderator password exists. Establish a real support/appeal contact before public launch.
-
-## Operations and recovery
-
-- Enable free provider quota/failure notifications and review dashboards. Watch HTTP failures, memory and `Mail delivery failed`, `Mail worker unavailable`, or `Cleanup will retry` logs. Never log credentials or message bodies. Treat sleeping service delays as a free-tier limitation.
-- Mail jobs use leases, three attempts and backoff. Verification expires after 24 hours, recovery after 30 minutes, and jobs seven days after their last update. A timeout can produce duplicate email; only the latest issued link is valid. Request a fresh link after a provider's daily sending quota resets if retries failed.
-- Closure hides accounts immediately. Cleanup starts after a one-minute grace period and processes bounded batches every ten seconds while awake. Remote photo deletion stays queued so API responses do not wait for a CDN. Failed tasks retry and rotate through the queue. Investigate growing `mediadeletions` or accounts stuck in `deleting` while the service is awake.
-- Confirm backup availability on the actual Atlas Free cluster. [Free backup preview](https://www.mongodb.com/docs/atlas/backup/cloud-backup/free-cluster-backup/) is gradually rolling out and is not assumed. If unavailable, arrange encrypted `mongodump` archives on your machine using the [official guide](https://www.mongodb.com/docs/manual/core/backups/). No paid backup job is provisioned.
-- Keep a separate private photo copy if recovery of deleted assets is required. Cloudinary Free is not a project-tested backup guarantee. Pause writes/workers for a consistent database/photo recovery point; test restoration into isolated storage rather than over live data. Publish the actual retention period.
-- Backups can resurrect deleted records. Reapply closures and moderation actions before restoring traffic; revoke sessions and recovery tokens after security-related restoration. Deploy manually after CI passes and keep the previous known-good commit. Code rollbacks do not undo content changes.
-
-Rate limits remain in memory for one service instance. Direct messages and real-time delivery are future features. Review [community rules and retention](COMMUNITY.md) before inviting members.
+Reload the deployed app, then open Profile → Account settings → Open moderation queue. Only an existing verified member can be promoted; no default moderator password exists. `revoke` removes the role; `restore` reactivates a suspended member without restoring sessions. Set a real support/appeal contact before inviting members.
 
 ## Hosted acceptance check
 
-Use separate browsers to check actual email delivery, verification, recovery, photo posting, reactions/replies/follows, private saves, blocking, moderation and closure. Confirm a Render restart preserves accounts and cloud photos. Check old sessions fail after reset or suspension. Allow for CDN invalidation delay when testing deleted media; downloaded copies cannot be recalled. Review keyboard/mobile behavior, quota dashboards and backup restoration. Record the live URL/results in `VERIFICATION.md`; simulated provider tests do not prove a live integration.
+Verify real registration email, confirmation, recovery, photo posting, replies/reactions/follows, private saves, blocking, moderation and closure with separate browsers. Confirm API routes return JSON, data/photos persist across deployments, cron rejects missing credentials, daily maintenance runs, and old sessions fail after reset/suspension. Check keyboard/mobile behavior and backups. Record the live URL/results in `VERIFICATION.md`. Until those checks pass, the project is prepared for Vercel but not a verified hosted release.
