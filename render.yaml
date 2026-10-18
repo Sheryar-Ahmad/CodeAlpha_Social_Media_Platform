@@ -1,0 +1,48 @@
+# Review the paid plan/disk cost before creating this Blueprint.
+# One persistent Node service: client, API, mail worker and cleanup worker.
+services:
+  - type: web
+    name: forma
+    runtime: node
+    plan: starter
+    region: singapore
+    numInstances: 1
+    autoDeployTrigger: off
+    buildCommand: npm ci --include=dev --no-fund && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    disk:
+      name: forma-photos
+      mountPath: /var/data/forma
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: '24'
+      - key: NODE_ENV
+        value: production
+      - key: APP_ORIGIN
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: UPLOAD_DIR
+        value: /var/data/forma/uploads
+      - key: TRUST_PROXY_HOPS
+        value: '1'
+      - key: SEED_STARTER_CONTENT
+        value: 'false'
+      - key: REQUIRE_VERIFIED_EMAIL
+        value: 'true'
+      - key: MAIL_MODE
+        value: smtp
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: '587'
+      - key: SMTP_SECURE
+        value: 'false'
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false

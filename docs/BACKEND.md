@@ -32,6 +32,12 @@ The authenticated JSON export streams records through database cursors. It inclu
 
 Collection deletion atomically removes the collection and clears its assignments while preserving bookmarks. Only a reply's author can remove it; post authors cannot remove another member's reply through this endpoint.
 
-Email verification/forgotten-password recovery needs a configured mail provider. Advanced moderation, reporting, account deletion, durable hosted object storage, direct messaging, real-time delivery, and production deployment remain explicit release milestones; do not present them as implemented.
+Version 0.5 adds verification and recovery through `routes/recovery.js` and `services/mailQueue.js`. Raw tokens are created only during delivery; MongoDB stores hashes and expiring single-use challenges. Recovery atomically changes the password and session version without automatically signing in. Private development mail previews replace SMTP only outside production.
+
+`services/visibility.js` centralizes mutual-block and inactive-account checks for feeds, direct posts, member search/profiles and replies. `routes/safety.js` handles private deduplicated reports and verified moderator review with bounded leases. Roles are operator-managed through `scripts/moderator.js`, never registration/profile input. Suspensions revoke sessions and hide content.
+
+Account closure marks the account inactive before background work. `services/accountRemoval.js` processes bounded repeatable batches after a short grace period. `postRemoval.js` queues photo deletion before clearing content and reconciles saved references. The worker retries failed file removal and leaves a minimal anonymous account record. See [retention](COMMUNITY.md) and [deployment/operations](DEPLOYMENT.md). Cross-document cleanup is eventually consistent rather than a single transaction.
+
+Hosted provider setup, backup/restore validation, direct messaging, real-time delivery and production deployment remain outstanding.
 
 References: [Express security](https://expressjs.com/en/advanced/best-practice-security/), [OWASP password storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html), [MongoDB atomic writes](https://www.mongodb.com/docs/manual/core/transactions/), and [Mongoose connections](https://mongoosejs.com/docs/connections.html).

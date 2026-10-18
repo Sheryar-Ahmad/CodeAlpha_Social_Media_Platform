@@ -2,7 +2,7 @@
 
 **Find your next idea.** A visual social platform for sharing work, learning, useful resources, and everyday perspectives.
 
-Version **0.4** includes real accounts, shared posts, replies, follows, reactions, private collections, profiles, preferences, and activity. Account settings now support password changes, session management, and data export. Collections can be renamed or removed, and members can remove their own replies. The browser-only preview remains available at `/demo`.
+Version **0.5** adds email verification, password recovery, member blocking, private reports, a moderator queue, and account closure with repeatable cleanup. Accounts, shared posts, replies, follows, reactions, private collections, preferences, and activity remain available. The browser-only preview is at `/demo`.
 
 ## Run locally
 
@@ -17,11 +17,16 @@ Open **http://127.0.0.1:5175** and choose **Create account**. No cloud database 
 
 The API uses port 3002. Stop development with Ctrl+C. Client changes reload automatically; restart the command after changing server code. If a port is occupied, close the earlier Forma process and retry. First-time MongoDB downloads require network access.
 
+New accounts must verify their email before posting or interacting. Local development saves email previews as private JSON files in ignored `.data/mail`; open the newest message addressed to your test account and follow its link. These files contain working links: do not share or commit them. No email provider is needed locally. Production requires real SMTP delivery. To grant moderator access to your verified local account while development is running, use `npm run moderator -- grant your_handle`.
+
 To use your own MongoDB instance instead, copy `.env.example` to `.env`, set `MONGODB_URI` there, and restart. Keep credentials out of chat and Git. The development origin must match `APP_ORIGIN` exactly, including host and port; use the address above rather than switching to `localhost`.
 
 ## Working features
 
 - Registration, sign-in/sign-out, seven-day server sessions, and persistent profiles.
+- Expiring single-use verification and password-reset links, queued email delivery with retries, and session revocation after reset.
+- Mutual member blocking, private reports, verified moderator review, post removal, and account suspension.
+- Password-confirmed account closure, immediate hiding, resumable content/photo cleanup, and documented retention.
 - Current-password-verified password changes that revoke older sessions; view and end individual sessions or sign out all other sessions.
 - JSON export of your own account data and contributions, with photo links and no credentials.
 - Shared text/photo posts, photo descriptions, ownership-checked editing/deletion, and revision conflicts that protect newer edits.
@@ -52,6 +57,8 @@ To use your own MongoDB instance instead, copy `.env.example` to `.env`, set `MO
 
 Start with the [plain-language code guide](docs/CODE_GUIDE.md). See also [backend decisions](docs/BACKEND.md), [roadmap](docs/PLAN.md), and [verification](docs/VERIFICATION.md).
 
+Launch instructions are in [deployment](docs/DEPLOYMENT.md); moderation and data retention are in [community rules](docs/COMMUNITY.md). The included `render.yaml` is an undeployed option that requires paid hosting and a persistent disk.
+
 ## Feed behavior
 
 For you favors selected topics (+4), followed creators (+2), liked/saved topics (up to +1), freshness (up to +1 over seven days), and a small capped popularity signal (+0.2). Your own posts appear first. The browser applies an author-diversity adjustment to loaded results. Latest and Following use chronological order; Popular uses reactions. Recommendations use activity inside Forma, with no analytics or tracking scripts.
@@ -64,16 +71,17 @@ The server fetches up to 24 posts at a time (maximum 48 per API request); filter
 npm test
 npm run test:browser
 npm run test:live
+npm run test:release
 npm run build
 ```
 
 Tests create isolated temporary databases and browser contexts, never your development database. Browser tests use installed Microsoft Edge by default; set `BROWSER_CHANNEL=chrome` or `BROWSER_EXECUTABLE` for another Chromium executable. Screenshots are ignored under `test-results/`.
 
-GitHub Actions runs `npm test` and the production build on pushes and pull requests. The repository's Actions tab shows the result of each hosted run.
+GitHub Actions runs `npm test`, the production build, and all three browser suites using Chromium on pushes and pull requests. The repository's Actions tab shows the result of each hosted run.
 
 Manual shared-account walkthrough:
 
-1. Register in a normal browser window. Open a private window and register a different account.
+1. Register in a normal browser window and verify its email using the local mail preview. Open a private window, register another account, and verify it too.
 2. Publish a post in the first window. Refresh the feed in the second; like it, reply, follow its author, and save it to a collection.
 3. Refresh the first window and check Activity. Verify the second account's collections remain private.
 4. Edit your post and confirm replies remain. Try opening the same post in two tabs and saving conflicting edits; the stale edit should be rejected.
@@ -87,13 +95,13 @@ Profiles, posts, replies, likes, and follows are visible to authenticated member
 
 From Profile, open the shield icon labeled **Account settings** to change your password, manage up to 20 sessions, or download your data. In Saved, use **Manage collections** to rename or remove a collection. Removing a collection keeps its posts saved.
 
-Email verification, forgotten-password recovery, reporting/moderation, account deletion, direct messages, real-time updates, hosted storage, and deployment remain release work. This is a working local full-stack milestone, not a deployed production service.
+Email verification, recovery, blocking, reports, moderation and account closure are implemented and tested locally. Hosted email, database, photo persistence, backups/monitoring and final live checks still need service setup. Direct messages and real-time delivery are future features. No public deployment has been performed.
 
 `/demo` keeps existing browser data separate; it does not import it into an account. The preview retains its 200-post limit and browser storage warnings. Clearing browser data resets only the preview, while server data is managed separately.
 
 ## Production configuration
 
-Build with `npm run build`, configure `MONGODB_URI`, `NODE_ENV=production`, and the exact HTTPS `APP_ORIGIN`, then run `npm start`. Express serves the client and API together. Provide a TLS reverse proxy and set `TRUST_PROXY_HOPS` only to the actual number of trusted proxy hops. `npm run preview` serves only the static client and is not the shared application server.
+Build with `npm run build`, configure `MONGODB_URI`, `NODE_ENV=production`, the exact HTTPS `APP_ORIGIN`, persistent `UPLOAD_DIR`, and SMTP settings, then run `npm start`. Express serves the client and API together. See [the step-by-step deployment guide](docs/DEPLOYMENT.md). Provide a TLS reverse proxy and set `TRUST_PROXY_HOPS` only to the actual number of trusted proxy hops. `npm run preview` serves only the static client and is not the shared application server.
 
 Use an authenticated MongoDB service, persistent upload storage, backups, monitoring, and the remaining release controls before public launch. The automatic loopback development database is not a production database. Follow the [MongoDB security checklist](https://www.mongodb.com/docs/manual/administration/security-checklist/). No deployment has been performed.
 

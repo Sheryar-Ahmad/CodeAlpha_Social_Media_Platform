@@ -57,6 +57,7 @@ Use clear names and early returns. Extract a helper when it has a clear job or r
 npm test
 npm run test:live
 npm run test:browser
+npm run test:release
 npm run build
 ```
 
