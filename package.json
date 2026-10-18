@@ -1,6 +1,6 @@
 {
   "name": "forma-social",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -17,9 +17,9 @@
     "start": "node server/index.js",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node --test --test-concurrency=1 tests/state.test.js tests/api.test.js tests/account.test.js tests/identity.test.js tests/safety.test.js",
+    "test": "node --test --test-concurrency=1 tests/state.test.js tests/api.test.js tests/account.test.js tests/identity.test.js tests/safety.test.js tests/cloud.test.js",
     "test:unit": "node --test tests/state.test.js",
-    "test:api": "node --test --test-concurrency=1 tests/api.test.js tests/account.test.js tests/identity.test.js tests/safety.test.js",
+    "test:api": "node --test --test-concurrency=1 tests/api.test.js tests/account.test.js tests/identity.test.js tests/safety.test.js tests/cloud.test.js",
     "moderator": "node scripts/moderator.js",
     "test:release": "node tests/release-browser.test.js",
     "test:live": "node tests/live-browser.test.js",

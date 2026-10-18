@@ -13,9 +13,9 @@ import {
   literalSearch,
 } from '../validation.js';
 import { serializePosts, notify } from '../serializers.js';
-import { prepareImage, removeImage } from '../media.js';
+import { prepareImage } from '../media.js';
 import { visiblePostStages, assertVisiblePost } from '../services/visibility.js';
-import { removePosts, cleanupMedia } from '../services/postRemoval.js';
+import { removePosts, cleanupMedia, queueImageRemoval } from '../services/postRemoval.js';
 
 const oid = (id) => new mongoose.Types.ObjectId(id);
 const signature = (filters) => createHash('sha256').update(JSON.stringify(filters)).digest('hex');
@@ -186,7 +186,7 @@ export function postRoutes(config) {
   });
   router.post('/', async (request, response) => {
     const data = parse(postSchema, request.body);
-    const image = await prepareImage(data.image, config.uploadDir);
+    const image = await prepareImage(data.image, config);
     try {
       if (
         !(await User.exists({
@@ -199,14 +199,17 @@ export function postRoutes(config) {
       const post = await Post.create({ ...data, image: image.url, authorId: request.user._id });
       if (!(await User.exists({ _id: request.user._id, status: 'active' }))) {
         await removePosts([post]);
-        await cleanupMedia(config);
+        if (config.mediaStore !== 'cloudinary') await cleanupMedia(config);
         throw new HttpError(401, 'Your session has ended. Sign in again.');
       }
       response
         .status(201)
         .json({ post: (await serializePosts([post.toObject()], request.user._id))[0] });
     } catch (error) {
-      if (image.created) await removeImage(image.url, config.uploadDir);
+      if (image.created) {
+        await queueImageRemoval(image.url);
+        if (config.mediaStore !== 'cloudinary') await cleanupMedia(config);
+      }
       throw error;
     }
   });
@@ -219,7 +222,7 @@ export function postRoutes(config) {
       throw new HttpError(403, 'Only the author can edit this post.');
     if (previous.revision !== data.revision)
       throw new HttpError(409, 'This post changed elsewhere. Refresh it before editing again.');
-    const image = await prepareImage(data.image, config.uploadDir, previous.image);
+    const image = await prepareImage(data.image, config, previous.image);
     const { revision, ...content } = data;
     let post;
     try {
@@ -229,14 +232,23 @@ export function postRoutes(config) {
         { returnDocument: 'after', runValidators: true },
       ).lean();
     } catch (error) {
-      if (image.created) await removeImage(image.url, config.uploadDir);
+      if (image.created) {
+        await queueImageRemoval(image.url);
+        if (config.mediaStore !== 'cloudinary') await cleanupMedia(config);
+      }
       throw error;
     }
     if (!post) {
-      if (image.created) await removeImage(image.url, config.uploadDir);
+      if (image.created) {
+        await queueImageRemoval(image.url);
+        if (config.mediaStore !== 'cloudinary') await cleanupMedia(config);
+      }
       throw new HttpError(409, 'This post changed elsewhere. Refresh it before editing again.');
     }
-    if (previous.image !== image.url) await removeImage(previous.image, config.uploadDir);
+    if (previous.image !== image.url) {
+      await queueImageRemoval(previous.image);
+      if (config.mediaStore !== 'cloudinary') await cleanupMedia(config);
+    }
     response.json({ post: (await serializePosts([post], request.user._id))[0] });
   });
   router.delete('/:id', async (request, response) => {
@@ -246,7 +258,7 @@ export function postRoutes(config) {
     if (String(post.authorId) !== String(request.user._id))
       throw new HttpError(403, 'Only the author can delete this post.');
     await removePosts([post]);
-    await cleanupMedia(config);
+    if (config.mediaStore !== 'cloudinary') await cleanupMedia(config);
     response.json({ ok: true });
   });
   router.put('/:id/like', async (request, response) => {

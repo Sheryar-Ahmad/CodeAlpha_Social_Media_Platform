@@ -15,8 +15,20 @@ export function configuration(environment = process.env) {
     throw Error('Production requires HTTPS APP_ORIGIN and MONGODB_URI.');
   const port = Number(environment.PORT || 3002);
   const mailMode = environment.MAIL_MODE || (production ? 'smtp' : 'preview');
-  if (!['preview', 'smtp'].includes(mailMode) || (production && mailMode !== 'smtp'))
-    throw Error('Production requires SMTP delivery; preview mail is development-only.');
+  if (!['preview', 'smtp', 'brevo'].includes(mailMode) || (production && mailMode === 'preview'))
+    throw Error('Production requires a mail provider; preview mail is development-only.');
+  const mediaStore = environment.MEDIA_STORE || 'local';
+  if (!['local', 'cloudinary'].includes(mediaStore)) throw Error('Invalid MEDIA_STORE.');
+  const cloudinary = {
+    cloudName: environment.CLOUDINARY_CLOUD_NAME || '',
+    apiKey: environment.CLOUDINARY_API_KEY || '',
+    apiSecret: environment.CLOUDINARY_API_SECRET || '',
+  };
+  if (
+    mediaStore === 'cloudinary' &&
+    (!/^[a-zA-Z0-9_-]+$/.test(cloudinary.cloudName) || !cloudinary.apiKey || !cloudinary.apiSecret)
+  )
+    throw Error('Configure CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.');
   const smtpPort = Number(environment.SMTP_PORT || 587);
   if (!Number.isInteger(smtpPort) || smtpPort < 1 || smtpPort > 65535)
     throw Error('Invalid SMTP_PORT.');
@@ -37,6 +49,9 @@ export function configuration(environment = process.env) {
     proxyHops,
     requireVerifiedEmail: environment.REQUIRE_VERIFIED_EMAIL !== 'false',
     mailMode,
+    brevo: { apiKey: environment.BREVO_API_KEY || '', from: environment.MAIL_FROM || '' },
+    mediaStore,
+    cloudinary,
     mailPreviewDir: resolve(environment.MAIL_PREVIEW_DIR || '.data/mail'),
     smtp: {
       host: environment.SMTP_HOST || '',

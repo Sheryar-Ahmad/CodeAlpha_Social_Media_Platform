@@ -1,15 +1,15 @@
 import { Post, User, MediaDeletion } from '../models.js';
-import { removeImage } from '../media.js';
+import { removeImage, isManagedImage } from '../media.js';
+
+export async function queueImageRemoval(url) {
+  if (isManagedImage(url))
+    await MediaDeletion.updateOne({ url }, { $setOnInsert: { url } }, { upsert: true });
+}
 
 export async function removePosts(posts) {
   const ids = posts.map((post) => post._id);
   for (const post of posts) {
-    if (/^\/media\/[a-f\d-]{36}\.webp$/.test(post.image || ''))
-      await MediaDeletion.updateOne(
-        { url: post.image },
-        { $setOnInsert: { url: post.image } },
-        { upsert: true },
-      );
+    await queueImageRemoval(post.image);
   }
   await Post.updateMany(
     { _id: { $in: ids }, deletedAt: null },
@@ -33,10 +33,11 @@ export async function removePosts(posts) {
 }
 
 export async function cleanupMedia(config) {
-  const tasks = await MediaDeletion.find().limit(50);
+  const tasks = await MediaDeletion.find().sort({ updatedAt: 1, _id: 1 }).limit(50);
   for (const task of tasks) {
+    // Rotate unsuccessful tasks so a failed provider or old reference cannot starve newer work.
+    await MediaDeletion.updateOne({ _id: task._id }, { $set: { updatedAt: new Date() } });
     if (await Post.exists({ image: task.url, deletedAt: null })) continue;
-    if (await removeImage(task.url, config.uploadDir))
-      await MediaDeletion.deleteOne({ _id: task._id });
+    if (await removeImage(task.url, config)) await MediaDeletion.deleteOne({ _id: task._id });
   }
 }

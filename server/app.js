@@ -22,7 +22,13 @@ export function createApp(config = configuration()) {
     helmet({
       contentSecurityPolicy: {
         directives: {
-          imgSrc: ["'self'", 'data:'],
+          imgSrc: [
+            "'self'",
+            'data:',
+            ...(config.mediaStore === 'cloudinary'
+              ? [`https://res.cloudinary.com/${config.cloudinary.cloudName}/`]
+              : []),
+          ],
           upgradeInsecureRequests: config.production ? [] : null,
         },
       },

@@ -128,7 +128,7 @@ export function safetyRoutes(config) {
         if (report.kind !== 'post')
           throw new HttpError(400, 'Choose a post report to remove a post.');
         if (post) await removePosts([post]);
-        await cleanupMedia(config);
+        if (config.mediaStore !== 'cloudinary') await cleanupMedia(config);
       }
       if (data.action === 'suspend-member') {
         const id = post?.authorId || (report.kind === 'member' ? report.targetId : null);
