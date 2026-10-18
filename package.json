@@ -1,6 +1,6 @@
 {
   "name": "forma-social",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -15,17 +15,19 @@
     "dev": "node scripts/dev.js",
     "dev:client": "vite --host 127.0.0.1 --port 5175 --strictPort",
     "start": "node server/index.js",
-    "build": "vite build",
+    "build": "node scripts/build.js",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node --test --test-concurrency=1 tests/state.test.js tests/api.test.js tests/account.test.js tests/identity.test.js tests/safety.test.js tests/cloud.test.js",
+    "test": "node --test --test-concurrency=1 tests/state.test.js tests/api.test.js tests/account.test.js tests/identity.test.js tests/safety.test.js tests/cloud.test.js tests/serverless.test.js",
     "test:unit": "node --test tests/state.test.js",
-    "test:api": "node --test --test-concurrency=1 tests/api.test.js tests/account.test.js tests/identity.test.js tests/safety.test.js tests/cloud.test.js",
+    "test:api": "node --test --test-concurrency=1 tests/api.test.js tests/account.test.js tests/identity.test.js tests/safety.test.js tests/cloud.test.js tests/serverless.test.js",
     "moderator": "node scripts/moderator.js",
+    "prepare:vercel": "node scripts/prepareVercel.js",
     "test:release": "node tests/release-browser.test.js",
     "test:live": "node tests/live-browser.test.js",
     "test:browser": "node tests/browser.test.js"
   },
   "dependencies": {
+    "@vercel/functions": "^3.10.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.4.2",
     "express": "^5.3.0",

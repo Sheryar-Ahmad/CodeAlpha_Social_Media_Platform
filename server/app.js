@@ -1,7 +1,7 @@
 import express from 'express';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import { rateLimit } from 'express-rate-limit';
+import { limitRequests } from './rateLimit.js';
 import mongoose from 'mongoose';
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
@@ -41,7 +41,7 @@ export function createApp(config = configuration()) {
   app.use('/api', requireOrigin(config));
   app.use(
     '/api',
-    rateLimit({
+    limitRequests(config, 'api', {
       windowMs: 15 * 60 * 1000,
       limit: 1000,
       standardHeaders: 'draft-8',

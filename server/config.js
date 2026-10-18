@@ -2,7 +2,13 @@ import { resolve } from 'node:path';
 
 export function configuration(environment = process.env) {
   const production = environment.NODE_ENV === 'production';
-  const origin = environment.APP_ORIGIN || 'http://127.0.0.1:5175';
+  const vercelOrigin =
+    environment.VERCEL === '1' &&
+    environment.VERCEL_ENV === 'production' &&
+    environment.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${environment.VERCEL_PROJECT_PRODUCTION_URL}`
+      : null;
+  const origin = environment.APP_ORIGIN || vercelOrigin || 'http://127.0.0.1:5175';
   let url;
   try {
     url = new URL(origin);
@@ -44,6 +50,8 @@ export function configuration(environment = process.env) {
     throw Error('Invalid PORT or TRUST_PROXY_HOPS.');
   return {
     production,
+    serverless: environment.VERCEL === '1',
+    cronSecret: environment.CRON_SECRET || '',
     origin,
     port,
     proxyHops,

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { rateLimit } from 'express-rate-limit';
+import { limitRequests } from '../rateLimit.js';
 import { User, Session } from '../models.js';
 import { hashPassword, verifyPassword, issueSession } from '../security.js';
 import {
@@ -13,7 +13,7 @@ import { exportAccount } from '../services/accountExport.js';
 
 export function securityRoutes(config) {
   const router = Router();
-  const sensitiveLimit = rateLimit({
+  const sensitiveLimit = limitRequests(config, 'account', {
     windowMs: 15 * 60 * 1000,
     limit: 15,
     standardHeaders: 'draft-8',

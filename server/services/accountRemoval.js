@@ -56,16 +56,16 @@ export async function finishAccountRemoval(userId) {
   return true;
 }
 
-export async function runCleanup(config) {
+export async function runCleanup(config, { userLimit = 5, mediaLimit = 50 } = {}) {
   // Give requests already in flight time to finish before the final content sweep.
   const users = await User.find({
     status: 'deleting',
     deletionRequestedAt: { $lte: new Date(Date.now() - 60_000) },
   })
     .select('_id')
-    .limit(5);
+    .limit(userLimit);
   for (const user of users) await finishAccountRemoval(user._id);
-  await cleanupMedia(config);
+  await cleanupMedia(config, mediaLimit);
 }
 
 export function startCleanupWorker(config) {

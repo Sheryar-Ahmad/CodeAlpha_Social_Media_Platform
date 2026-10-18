@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { rateLimit } from 'express-rate-limit';
+import { limitRequests } from '../rateLimit.js';
 import { User, Post, Session, Report } from '../models.js';
 import { parse, resourceId, HttpError, reportSchema, reviewSchema } from '../validation.js';
 import { publicUser } from '../serializers.js';
@@ -8,7 +8,7 @@ import { removePosts, cleanupMedia } from '../services/postRemoval.js';
 
 export function safetyRoutes(config) {
   const router = Router();
-  const reportLimit = rateLimit({
+  const reportLimit = limitRequests(config, 'reports', {
     windowMs: 60 * 60 * 1000,
     limit: 20,
     standardHeaders: 'draft-8',

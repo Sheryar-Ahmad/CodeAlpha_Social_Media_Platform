@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { rateLimit } from 'express-rate-limit';
+import { limitRequests } from '../rateLimit.js';
 import { User, Session } from '../models.js';
 import { HttpError, parse, registerSchema, loginSchema } from '../validation.js';
 import { authentication, hashPassword, verifyPassword, issueSession } from '../security.js';
@@ -9,7 +9,7 @@ import { queueMail } from '../services/mailQueue.js';
 export function authRoutes(config) {
   const router = Router();
   const requireAuth = authentication(config);
-  const throttle = rateLimit({
+  const throttle = limitRequests(config, 'auth', {
     windowMs: 15 * 60 * 1000,
     limit: 30,
     standardHeaders: 'draft-8',

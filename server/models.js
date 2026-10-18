@@ -149,10 +149,19 @@ const mediaDeletionSchema = new Schema(
   { timestamps: true, bufferCommands: false },
 );
 export const MediaDeletion = mongoose.model('MediaDeletion', mediaDeletionSchema);
+const rateBucketSchema = new Schema(
+  { _id: String, hits: Number, expiresAt: Date },
+  { bufferCommands: false },
+);
+rateBucketSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+export const RateBucket = mongoose.model('RateBucket', rateBucketSchema);
 
 export async function connectDatabase(uri) {
   await mongoose.connect(uri, {
     serverSelectionTimeoutMS: 5000,
+    maxPoolSize: 10,
+    minPoolSize: 0,
+    maxIdleTimeMS: 60_000,
     // Acknowledged changes must survive an abrupt local process shutdown.
     writeConcern: { w: 'majority', journal: true },
   });
@@ -163,6 +172,7 @@ export async function connectDatabase(uri) {
     MailJob.init(),
     Report.init(),
     MediaDeletion.init(),
+    RateBucket.init(),
   ]);
   await User.updateMany({ status: { $exists: false } }, { $set: { status: 'active' } });
   await User.updateMany({ role: { $exists: false } }, { $set: { role: 'member' } });

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { rateLimit } from 'express-rate-limit';
+import { limitRequests } from '../rateLimit.js';
 import { setTimeout as delay } from 'node:timers/promises';
 import { User, Session } from '../models.js';
 import { authentication, hashPassword } from '../security.js';
@@ -14,7 +14,7 @@ import { queueMail, tokenDigest } from '../services/mailQueue.js';
 
 export function recoveryRoutes(config) {
   const router = Router();
-  const throttle = rateLimit({
+  const throttle = limitRequests(config, 'recovery', {
     windowMs: 15 * 60 * 1000,
     limit: 15,
     standardHeaders: 'draft-8',

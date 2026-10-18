@@ -32,12 +32,14 @@ export async function removePosts(posts) {
   );
 }
 
-export async function cleanupMedia(config) {
-  const tasks = await MediaDeletion.find().sort({ updatedAt: 1, _id: 1 }).limit(50);
-  for (const task of tasks) {
+export async function cleanupMedia(config, limit = 50) {
+  const tasks = await MediaDeletion.find().sort({ updatedAt: 1, _id: 1 }).limit(limit);
+  async function removeTask(task) {
     // Rotate unsuccessful tasks so a failed provider or old reference cannot starve newer work.
     await MediaDeletion.updateOne({ _id: task._id }, { $set: { updatedAt: new Date() } });
-    if (await Post.exists({ image: task.url, deletedAt: null })) continue;
+    if (await Post.exists({ image: task.url, deletedAt: null })) return;
     if (await removeImage(task.url, config)) await MediaDeletion.deleteOne({ _id: task._id });
   }
+  for (let offset = 0; offset < tasks.length; offset += 4)
+    await Promise.all(tasks.slice(offset, offset + 4).map(removeTask));
 }

@@ -1,0 +1,8 @@
+.env
+.env.*
+.data/
+.cache/
+test-results/
+tests/
+node_modules/
+.git/
