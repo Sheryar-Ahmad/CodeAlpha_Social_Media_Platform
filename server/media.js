@@ -36,10 +36,12 @@ export async function prepareImage(value, directory, previous = null) {
 }
 
 export async function removeImage(url, directory) {
-  if (!/^\/media\/[a-f\d-]{36}\.webp$/.test(url || '')) return;
+  if (!/^\/media\/[a-f\d-]{36}\.webp$/.test(url || '')) return true;
   try {
     await unlink(join(directory, url.slice('/media/'.length)));
+    return true;
   } catch (error) {
     if (error.code !== 'ENOENT') console.error('Media cleanup failed:', error.code);
+    return error.code === 'ENOENT';
   }
 }

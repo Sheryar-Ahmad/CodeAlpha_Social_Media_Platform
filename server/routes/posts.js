@@ -14,6 +14,8 @@ import {
 } from '../validation.js';
 import { serializePosts, notify } from '../serializers.js';
 import { prepareImage, removeImage } from '../media.js';
+import { visiblePostStages, assertVisiblePost } from '../services/visibility.js';
+import { removePosts, cleanupMedia } from '../services/postRemoval.js';
 
 const oid = (id) => new mongoose.Types.ObjectId(id);
 const signature = (filters) => createHash('sha256').update(JSON.stringify(filters)).digest('hex');
@@ -140,7 +142,11 @@ export function postRoutes(config) {
         ],
       };
     }
-    const pipeline = [{ $match: query }, { $addFields: { _rank: score } }];
+    const pipeline = [
+      { $match: query },
+      ...visiblePostStages(user),
+      { $addFields: { _rank: score } },
+    ];
     if (after)
       pipeline.push({
         $match: {
@@ -169,6 +175,10 @@ export function postRoutes(config) {
       : null;
     response.json({ posts: await serializePosts(posts, user._id), nextCursor });
   });
+  router.use('/:id', async (request, response, next) => {
+    await assertVisiblePost(request.user, resourceId(request.params.id));
+    next();
+  });
   router.get('/:id', async (request, response) => {
     const post = await Post.findOne({ _id: resourceId(request.params.id), deletedAt: null }).lean();
     if (!post) throw new HttpError(404, 'This post is no longer available.');
@@ -178,7 +188,20 @@ export function postRoutes(config) {
     const data = parse(postSchema, request.body);
     const image = await prepareImage(data.image, config.uploadDir);
     try {
+      if (
+        !(await User.exists({
+          _id: request.user._id,
+          status: 'active',
+          sessionVersion: request.user.sessionVersion,
+        }))
+      )
+        throw new HttpError(401, 'Your session has ended. Sign in again.');
       const post = await Post.create({ ...data, image: image.url, authorId: request.user._id });
+      if (!(await User.exists({ _id: request.user._id, status: 'active' }))) {
+        await removePosts([post]);
+        await cleanupMedia(config);
+        throw new HttpError(401, 'Your session has ended. Sign in again.');
+      }
       response
         .status(201)
         .json({ post: (await serializePosts([post.toObject()], request.user._id))[0] });
@@ -222,23 +245,8 @@ export function postRoutes(config) {
     if (!post) throw new HttpError(404, 'This post is no longer available.');
     if (String(post.authorId) !== String(request.user._id))
       throw new HttpError(403, 'Only the author can delete this post.');
-    await Post.updateOne(
-      { _id: id, authorId: request.user._id, deletedAt: null },
-      {
-        $set: {
-          deletedAt: new Date(),
-          image: null,
-          imageAlt: '',
-          text: '',
-          title: '',
-          comments: [],
-          likedBy: [],
-        },
-        $inc: { revision: 1 },
-      },
-    );
-    await User.updateMany({ 'saved.postId': id }, { $pull: { saved: { postId: id } } });
-    await removeImage(post.image, config.uploadDir);
+    await removePosts([post]);
+    await cleanupMedia(config);
     response.json({ ok: true });
   });
   router.put('/:id/like', async (request, response) => {

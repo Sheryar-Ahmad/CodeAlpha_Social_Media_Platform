@@ -12,6 +12,11 @@ import {
   literalSearch,
 } from '../validation.js';
 import { publicUser, userState, notify } from '../serializers.js';
+import {
+  visibleMemberQuery,
+  assertVisibleMember,
+  assertVisiblePost,
+} from '../services/visibility.js';
 
 export function accountRoutes() {
   const router = Router();
@@ -33,7 +38,8 @@ export function accountRoutes() {
       throw new HttpError(400, 'Invalid search.');
     const query = literalSearch((request.query.q || '').trim());
     const users = await User.find({
-      _id: { $ne: request.user._id },
+      ...visibleMemberQuery(request.user),
+      _id: { $ne: request.user._id, $nin: request.user.blocked },
       ...(query
         ? {
             $or: [
@@ -51,8 +57,7 @@ export function accountRoutes() {
   });
   router.get('/users/:id', async (request, response) => {
     const id = resourceId(request.params.id);
-    const user = await User.findById(id).lean();
-    if (!user) throw new HttpError(404, 'This profile could not be found.');
+    const user = (await assertVisibleMember(request.user, id)).toObject();
     const [postCount, followerCount] = await Promise.all([
       Post.countDocuments({ authorId: id, deletedAt: null }),
       User.countDocuments({ following: id }),
@@ -69,8 +74,7 @@ export function accountRoutes() {
   router.put('/follows/:id', async (request, response) => {
     const id = resourceId(request.params.id);
     if (id === String(request.user._id)) throw new HttpError(400, 'You cannot follow yourself.');
-    if (!(await User.exists({ _id: id })))
-      throw new HttpError(404, 'This profile could not be found.');
+    await assertVisibleMember(request.user, id);
     const result = await User.updateOne(
       {
         _id: request.user._id,
@@ -93,8 +97,7 @@ export function accountRoutes() {
   });
   router.put('/bookmarks/:id', async (request, response) => {
     const id = resourceId(request.params.id);
-    if (!(await Post.exists({ _id: id, deletedAt: null })))
-      throw new HttpError(404, 'This post is no longer available.');
+    await assertVisiblePost(request.user, id);
     const result = await User.updateOne(
       {
         _id: request.user._id,

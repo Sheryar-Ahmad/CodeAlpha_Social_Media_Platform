@@ -6,6 +6,10 @@ import useCommunity from './lib/useCommunity.js';
 import Auth from './components/Auth.jsx';
 import AccountSettings from './components/AccountSettings.jsx';
 import ManageCollections from './components/ManageCollections.jsx';
+import IdentityAction from './components/IdentityAction.jsx';
+import ReportForm from './components/ReportForm.jsx';
+import Moderation from './components/Moderation.jsx';
+import { api } from './lib/api.js';
 import Layout, { navigation } from './components/Layout.jsx';
 import Feed from './components/Feed.jsx';
 import {
@@ -23,6 +27,10 @@ import PostCard from './components/PostCard.jsx';
 
 function currentRoute() {
   const hash = location.hash.slice(1);
+  if (hash === 'moderation') return { view: 'Moderation', postId: null };
+  const identity = /^(verify-email|reset-password)\/([^/]+)$/.exec(hash);
+  if (identity)
+    return { view: 'Home', postId: null, identityAction: identity[1], token: identity[2] };
   if (hash.startsWith('user/')) return { view: 'Profile', userId: hash.slice(5), postId: null };
   if (hash.startsWith('post/')) return { view: 'Home', postId: hash.slice(5) };
   return {
@@ -42,6 +50,10 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [returnView, setReturnView] = useState('Home');
   const [modal, setModal] = useState(null);
+  const [safetyTarget, setSafetyTarget] = useState(null);
+  const [safetyBusy, setSafetyBusy] = useState(false);
+  const [safetyError, setSafetyError] = useState('');
+  const [signedOutNotice, setSignedOutNotice] = useState('');
   const [toast, setToast] = useState(community.warning);
   const [storageFailed, setStorageFailed] = useState(false);
   const view = route.view;
@@ -69,11 +81,11 @@ export default function App() {
   }, [state]);
 
   useEffect(() => {
-    if (mode !== 'live' || status !== 'ready') return;
+    if (mode !== 'live' || status !== 'ready' || route.identityAction) return;
     if (route.postId) void community.loadPost(route.postId);
     else {
       if (route.userId) void community.loadProfile(route.userId);
-      if (view === 'Notifications') void community.refreshActivity();
+      if (view === 'Notifications' || view === 'Moderation') void community.refreshActivity();
       else
         void community.loadFeed({
           view: route.userId ? 'PublicProfile' : view,
@@ -203,6 +215,10 @@ export default function App() {
     onOpen: openPost,
     onPerson: mode === 'live' ? openPerson : null,
     mode,
+    onReport: (post) => {
+      setSafetyTarget({ kind: 'post', id: post.id });
+      setModal('report');
+    },
     onEdit: (post) => {
       setEditingPost(post);
       setModal('edit');
@@ -213,6 +229,17 @@ export default function App() {
     },
   };
 
+  if (mode === 'live' && route.identityAction)
+    return (
+      <IdentityAction
+        action={route.identityAction}
+        token={route.token}
+        onBack={() => {
+          navigate('Home');
+          void community.retry();
+        }}
+      />
+    );
   if (mode === 'live' && status === 'loading')
     return (
       <main className="app-loading" aria-busy="true">
@@ -223,11 +250,13 @@ export default function App() {
   if (mode === 'live' && status !== 'ready')
     return (
       <Auth
+        message={signedOutNotice}
         error={community.error}
         unavailable={status === 'error'}
         retry={community.retry}
         authenticate={async (kind, values) => {
           const success = await community.authenticate(kind, values);
+          if (success) setSignedOutNotice('');
           if (success && !route.postId && !route.userId) navigate('Home');
           return success;
         }}
@@ -250,6 +279,14 @@ export default function App() {
           <div className="preview-banner">
             <span>You’re exploring a local preview.</span>
             <a href="/">Sign in to the community →</a>
+          </div>
+        )}
+        {mode === 'live' && state.profile.emailVerified === false && (
+          <div className="verification-banner">
+            <span>Confirm your email to join the conversation.</span>
+            <button className="text-button" onClick={() => setModal('account')}>
+              Verify email
+            </button>
           </div>
         )}
         {mode === 'live' && community.error && (
@@ -305,6 +342,8 @@ export default function App() {
               />
             )}
           </>
+        ) : view === 'Moderation' ? (
+          <Moderation />
         ) : view === 'Notifications' ? (
           <Activity
             state={state}
@@ -338,6 +377,23 @@ export default function App() {
                 onFollow={(id) => dispatch({ type: 'follow', id })}
                 onLogout={mode === 'live' ? community.logout : null}
                 onAccount={mode === 'live' ? () => setModal('account') : null}
+                onBlock={
+                  mode === 'live'
+                    ? (person) => {
+                        setSafetyTarget(person);
+                        setSafetyError('');
+                        setModal('block');
+                      }
+                    : null
+                }
+                onReport={
+                  mode === 'live'
+                    ? (person) => {
+                        setSafetyTarget({ kind: 'member', id: person.id });
+                        setModal('report');
+                      }
+                    : null
+                }
                 onEdit={() => setModal('profile')}
                 onSettings={() => setModal('settings')}
                 onCompose={() => setModal('compose')}
@@ -388,6 +444,7 @@ export default function App() {
           <div>
             <button onClick={() => setModal('about')}>About</button>
             <button onClick={() => setModal('privacy')}>Privacy</button>
+            <button onClick={() => setModal('rules')}>Community rules</button>
             <span>{mode === 'demo' ? 'Local demo' : 'Your shared community'}</span>
           </div>
         </footer>
@@ -472,7 +529,72 @@ export default function App() {
           <AccountSettings
             onSessionRenewed={community.sessionRenewed}
             onSessionExpired={community.logout}
+            onVisibilityChanged={community.visibilityChanged}
+            onAccountClosed={async () => {
+              setSignedOutNotice('Your account is closed. Personal data removal is in progress.');
+              await community.logout();
+            }}
+            isModerator={state.profile.isModerator}
+            onModeration={() => {
+              setModal(null);
+              navigate('Moderation');
+            }}
           />
+        </Dialog>
+      )}
+      {modal === 'report' && (
+        <Dialog title="Report a concern" onClose={() => setModal(null)}>
+          <ReportForm
+            target={safetyTarget}
+            onDone={() => {
+              setModal(null);
+              setToast('Report received. It is available to the moderation team.');
+            }}
+          />
+        </Dialog>
+      )}
+      {modal === 'block' && (
+        <Dialog
+          title={`Block ${safetyTarget.name}?`}
+          error={safetyError}
+          onClose={() => setModal(null)}
+        >
+          <div className="info-dialog">
+            <p>
+              You will no longer see each other’s profiles, posts, or replies. Existing follows will
+              be removed. You can unblock them from Account settings.
+            </p>
+            <div className="delete-actions">
+              <button
+                className="secondary-button"
+                disabled={safetyBusy}
+                onClick={() => setModal(null)}
+              >
+                Keep member visible
+              </button>
+              <button
+                className="primary-button"
+                disabled={safetyBusy}
+                onClick={async () => {
+                  setSafetyBusy(true);
+                  setSafetyError('');
+                  try {
+                    await api(`/safety/blocks/${safetyTarget.id}`, { method: 'PUT' });
+                    await community.visibilityChanged();
+                    setModal(null);
+                    navigate('Home');
+                    setToast('Member blocked.');
+                  } catch (issue) {
+                    setSafetyError(issue.message);
+                  } finally {
+                    setSafetyBusy(false);
+                  }
+                }}
+              >
+                Block member
+              </button>
+            </div>
+          </div>
         </Dialog>
       )}
       {modal === 'profile' && (
@@ -540,6 +662,30 @@ export default function App() {
           </div>
         </Dialog>
       )}
+      {modal === 'rules' && (
+        <Dialog title="Community rules" onClose={() => setModal(null)}>
+          <div className="info-dialog">
+            <p>
+              Share useful ideas and perspectives. Respect others, give constructive feedback, and
+              publish only content you have permission to share.
+            </p>
+            <p>
+              Spam, harassment, hateful attacks, threats, sexual exploitation, dangerous content,
+              and sharing private information are not welcome.
+            </p>
+            <p>
+              Report a post from its discussion or a member from their profile. Verified moderators
+              can remove content or suspend accounts after review. Reports are private. Blocking
+              hides your profiles, posts, and replies from one another and removes follows.
+            </p>
+            <p>
+              Uploaded photo links are public to anyone who has the URL. Blocking cannot recall
+              downloaded copies. Account settings include blocked members, data export, and account
+              closure.
+            </p>
+          </div>
+        </Dialog>
+      )}
       {modal === 'privacy' && (
         <Dialog title="Your data, explained." onClose={() => setModal(null)}>
           <div className="info-dialog">
@@ -557,6 +703,15 @@ export default function App() {
               There are no analytics or tracking scripts. Your interests, follows, likes, and saves
               help rank your feed. Choose Latest for chronological order.
             </p>
+            {mode === 'live' && (
+              <p>
+                Account settings let you export your data or close your account. Closure hides your
+                account immediately, then removes personal data and contributions in background
+                batches. A minimal anonymous record remains for reference integrity. Reports are
+                private to moderators; closed reports expire about 90 days after review. Backups and
+                already downloaded photos follow separate retention.
+              </p>
+            )}
           </div>
         </Dialog>
       )}

@@ -28,6 +28,19 @@ const userSchema = new Schema(
     email: { type: String, required: true, unique: true, select: false },
     passwordHash: { type: String, select: false },
     sessionVersion: { type: Number, default: 0 },
+    emailVerifiedAt: { type: Date, default: null },
+    verificationToken: { type: String, select: false },
+    verificationExpiresAt: Date,
+    resetToken: { type: String, select: false },
+    resetExpiresAt: Date,
+    status: {
+      type: String,
+      enum: ['active', 'suspended', 'deleting', 'deleted'],
+      default: 'active',
+    },
+    role: { type: String, enum: ['member', 'moderator'], default: 'member' },
+    blocked: { type: [objectId], default: [] },
+    deletionRequestedAt: Date,
     bio: { type: String, default: '', maxlength: 160 },
     photo: { type: String, default: null },
     isSample: { type: Boolean, default: false },
@@ -49,6 +62,7 @@ const userSchema = new Schema(
 );
 userSchema.index({ createdAt: -1, _id: -1 });
 userSchema.index({ following: 1 });
+userSchema.index({ blocked: 1 });
 
 const commentSchema = new Schema({
   authorId: { type: objectId, required: true },
@@ -93,6 +107,48 @@ sessionSchema.index({ userId: 1 });
 export const User = mongoose.model('User', userSchema);
 export const Post = mongoose.model('Post', postSchema);
 export const Session = mongoose.model('Session', sessionSchema);
+const mailJobSchema = new Schema(
+  {
+    userId: { type: objectId, required: true },
+    kind: { type: String, enum: ['verification', 'recovery'], required: true },
+    state: { type: String, enum: ['queued', 'sending', 'sent', 'failed'], default: 'queued' },
+    attempts: { type: Number, default: 0 },
+    requestVersion: { type: Number, default: 0 },
+    requestedAt: { type: Date, default: Date.now },
+    runAt: { type: Date, default: Date.now },
+    lockedUntil: Date,
+  },
+  { timestamps: true, bufferCommands: false },
+);
+mailJobSchema.index({ userId: 1, kind: 1 }, { unique: true });
+mailJobSchema.index({ state: 1, runAt: 1 });
+mailJobSchema.index({ updatedAt: 1 }, { expireAfterSeconds: 7 * 24 * 60 * 60 });
+export const MailJob = mongoose.model('MailJob', mailJobSchema);
+const reportSchema = new Schema(
+  {
+    reporterId: { type: objectId, required: true },
+    kind: { type: String, enum: ['post', 'member'], required: true },
+    targetId: { type: objectId, required: true },
+    reason: { type: String, required: true },
+    details: { type: String, maxlength: 500, default: '' },
+    state: { type: String, enum: ['open', 'reviewing', 'resolved', 'dismissed'], default: 'open' },
+    reviewerId: objectId,
+    reviewLease: Date,
+    reviewedAt: Date,
+    resolution: String,
+    notes: { type: String, maxlength: 500, default: '' },
+  },
+  { timestamps: true, bufferCommands: false },
+);
+reportSchema.index({ reporterId: 1, kind: 1, targetId: 1 }, { unique: true });
+reportSchema.index({ state: 1, createdAt: 1 });
+reportSchema.index({ reviewedAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
+export const Report = mongoose.model('Report', reportSchema);
+const mediaDeletionSchema = new Schema(
+  { url: { type: String, unique: true, required: true } },
+  { timestamps: true, bufferCommands: false },
+);
+export const MediaDeletion = mongoose.model('MediaDeletion', mediaDeletionSchema);
 
 export async function connectDatabase(uri) {
   await mongoose.connect(uri, {
@@ -100,5 +156,14 @@ export async function connectDatabase(uri) {
     // Acknowledged changes must survive an abrupt local process shutdown.
     writeConcern: { w: 'majority', journal: true },
   });
-  await Promise.all([User.init(), Post.init(), Session.init()]);
+  await Promise.all([
+    User.init(),
+    Post.init(),
+    Session.init(),
+    MailJob.init(),
+    Report.init(),
+    MediaDeletion.init(),
+  ]);
+  await User.updateMany({ status: { $exists: false } }, { $set: { status: 'active' } });
+  await User.updateMany({ role: { $exists: false } }, { $set: { role: 'member' } });
 }

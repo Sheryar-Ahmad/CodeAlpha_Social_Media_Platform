@@ -282,6 +282,11 @@ export default function useCommunity() {
     epoch.current++;
     await refresh();
   }
+  async function visibilityChanged() {
+    epoch.current++;
+    update((previous) => ({ ...previous, people: [], posts: [] }));
+    await refresh();
+  }
   return {
     state: demoMode ? localState : { ...state, busy },
     dispatch,
@@ -302,6 +307,7 @@ export default function useCommunity() {
     refresh,
     refreshActivity,
     sessionRenewed,
+    visibilityChanged,
     clearError: () => setError(''),
   };
 }

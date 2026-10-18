@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart, MessageCircle, Bookmark, Share2, Send, ArrowUpRight } from 'lucide-react';
+import { Heart, MessageCircle, Bookmark, Share2, Send, ArrowUpRight, Flag } from 'lucide-react';
 import { Avatar } from './ui.jsx';
 import { people } from '../data/seed.js';
 import { NotePattern, TopicIcon } from './Graphics.jsx';
@@ -29,6 +29,7 @@ export default function PostCard({
   onOpen,
   onEdit,
   onDelete,
+  onReport,
   detail = false,
   onPerson = null,
   mode = 'demo',
@@ -235,6 +236,16 @@ export default function PostCard({
           >
             <Share2 size={18} />
           </button>
+          {mode === 'live' && onReport && post.authorId !== 'you' && (
+            <button
+              className="icon-button"
+              aria-label="Report this post"
+              title="Report this post"
+              onClick={() => onReport(post)}
+            >
+              <Flag size={18} />
+            </button>
+          )}
         </footer>
         {saved && (
           <label className="save-collection">

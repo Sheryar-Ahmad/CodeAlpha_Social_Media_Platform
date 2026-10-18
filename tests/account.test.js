@@ -32,7 +32,9 @@ before(async () => {
   directory = await mkdtemp(join(tmpdir(), 'forma-account-'));
   database = await localDatabase();
   await connectDatabase(database.getUri('forma_account_test'));
-  app = createApp(configuration({ APP_ORIGIN: origin, UPLOAD_DIR: directory }));
+  app = createApp(
+    configuration({ APP_ORIGIN: origin, REQUIRE_VERIFIED_EMAIL: 'false', UPLOAD_DIR: directory }),
+  );
   owner = request.agent(app);
   second = request.agent(app);
   other = request.agent(app);

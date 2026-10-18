@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Download, ShieldCheck, Monitor, KeyRound } from 'lucide-react';
 import { api } from '../lib/api.js';
+import EmailSettings from './EmailSettings.jsx';
+import BlockedMembers from './BlockedMembers.jsx';
+import DeleteAccount from './DeleteAccount.jsx';
 
 function date(value) {
   return new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(
@@ -73,7 +76,14 @@ function PasswordForm({ busy, onChange }) {
   );
 }
 
-export default function AccountSettings({ onSessionRenewed, onSessionExpired }) {
+export default function AccountSettings({
+  onSessionRenewed,
+  onSessionExpired,
+  onVisibilityChanged,
+  onModeration,
+  isModerator,
+  onAccountClosed,
+}) {
   const [sessions, setSessions] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -172,6 +182,16 @@ export default function AccountSettings({ onSessionRenewed, onSessionExpired }) 
       <p className="account-notice" role="status">
         {busy ? 'Saving your request…' : notice}
       </p>
+      <EmailSettings />
+      {isModerator && (
+        <section className="account-section">
+          <h3>Community moderation</h3>
+          <p>Review private reports and apply community rules.</p>
+          <button className="secondary-button" onClick={onModeration}>
+            Open moderation queue
+          </button>
+        </section>
+      )}
       <PasswordForm busy={busy} onChange={changePassword} />
       <section className="account-section" aria-labelledby="sessions-heading">
         <div className="account-section-heading">
@@ -221,6 +241,7 @@ export default function AccountSettings({ onSessionRenewed, onSessionExpired }) 
           </ul>
         )}
       </section>
+      <BlockedMembers onChanged={onVisibilityChanged} />
       <section className="account-section" aria-labelledby="export-heading">
         <h3 id="export-heading">
           <Download size={18} />
@@ -234,6 +255,7 @@ export default function AccountSettings({ onSessionRenewed, onSessionExpired }) 
           Download my data <Download size={16} />
         </button>
       </section>
+      <DeleteAccount onClosed={onAccountClosed} />
     </div>
   );
 }

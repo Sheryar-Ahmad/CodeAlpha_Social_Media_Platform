@@ -2,20 +2,25 @@ import { useState } from 'react';
 import { ArrowUpRight, LoaderCircle, RefreshCw } from 'lucide-react';
 import { Brand } from './ui.jsx';
 import { FlowerMark, PerspectiveArt } from './Graphics.jsx';
+import { api } from '../lib/api.js';
 
-export default function Auth({ authenticate, error, unavailable = false, retry }) {
+export default function Auth({ authenticate, error, unavailable = false, retry, message = '' }) {
   const [kind, setKind] = useState('login');
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState('');
+  const [notice, setNotice] = useState('');
   async function submit(event) {
     event.preventDefault();
     setLocalError('');
     setBusy(true);
     const values = Object.fromEntries(new FormData(event.currentTarget));
     try {
-      await authenticate(kind, values);
-    } catch {
-      setLocalError('Please try again.');
+      if (kind === 'forgot') {
+        const result = await api('/auth/forgot-password', { method: 'POST', body: values });
+        setNotice(result.message);
+      } else await authenticate(kind, values);
+    } catch (issue) {
+      setLocalError(issue.message || 'Please try again.');
     } finally {
       setBusy(false);
     }
@@ -82,13 +87,26 @@ export default function Auth({ authenticate, error, unavailable = false, retry }
                   Create account
                 </button>
               </div>
-              <h2>{kind === 'login' ? 'Welcome back.' : 'Make yourself at home.'}</h2>
+              <h2>
+                {kind === 'forgot'
+                  ? 'Reset your password.'
+                  : kind === 'login'
+                    ? 'Welcome back.'
+                    : 'Make yourself at home.'}
+              </h2>
               <p>
-                {kind === 'login'
-                  ? 'Your people and perspectives are waiting.'
-                  : 'A space for your ideas, and your next chapter.'}
+                {kind === 'forgot'
+                  ? 'Enter your account email to request a reset link.'
+                  : kind === 'login'
+                    ? 'Your people and perspectives are waiting.'
+                    : 'A space for your ideas, and your next chapter.'}
               </p>
               <form onSubmit={submit}>
+                {message && (
+                  <p className="account-notice" role="status">
+                    {message}
+                  </p>
+                )}
                 {kind === 'register' && (
                   <>
                     <label htmlFor="auth-name">Display name</label>
@@ -117,22 +135,26 @@ export default function Auth({ authenticate, error, unavailable = false, retry }
                   maxLength={254}
                   required
                 />
-                <label htmlFor="auth-password">Password</label>
-                <input
-                  id="auth-password"
-                  name="password"
-                  type="password"
-                  autoComplete={kind === 'login' ? 'current-password' : 'new-password'}
-                  minLength={kind === 'register' ? 12 : 1}
-                  maxLength={128}
-                  required
-                />
+                {kind !== 'forgot' && (
+                  <>
+                    <label htmlFor="auth-password">Password</label>
+                    <input
+                      id="auth-password"
+                      name="password"
+                      type="password"
+                      autoComplete={kind === 'login' ? 'current-password' : 'new-password'}
+                      minLength={kind === 'register' ? 12 : 1}
+                      maxLength={128}
+                      required
+                    />
+                  </>
+                )}
                 {kind === 'register' && (
                   <p className="input-hint">
                     Use at least 12 characters. A longer phrase works well.
                   </p>
                 )}
-                {(error || localError) && (
+                {((kind !== 'forgot' && error) || localError) && (
                   <p className="form-error" role="alert">
                     {localError || error}
                   </p>
@@ -145,12 +167,31 @@ export default function Auth({ authenticate, error, unavailable = false, retry }
                     </>
                   ) : (
                     <>
-                      {kind === 'login' ? 'Sign in to Forma' : 'Create my account'}
+                      {kind === 'forgot'
+                        ? 'Send reset link'
+                        : kind === 'login'
+                          ? 'Sign in to Forma'
+                          : 'Create my account'}
                       <ArrowUpRight size={17} />
                     </>
                   )}
                 </button>
               </form>
+              {notice && kind === 'forgot' && (
+                <p className="account-notice" role="status">
+                  {notice}
+                </p>
+              )}
+              <button
+                className="text-button recovery-link"
+                onClick={() => {
+                  setKind(kind === 'forgot' ? 'login' : 'forgot');
+                  setLocalError('');
+                  setNotice('');
+                }}
+              >
+                {kind === 'forgot' ? 'Back to sign in' : 'Forgot your password?'}
+              </button>
               <div className="auth-preview">
                 <span>Want a look around first?</span>
                 <a className="text-button" href="/demo">

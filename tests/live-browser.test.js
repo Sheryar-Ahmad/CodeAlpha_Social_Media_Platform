@@ -52,7 +52,9 @@ try {
   database = await localDatabase();
   await connectDatabase(database.getUri('forma_live_test'));
   await seedStarterContent();
-  const app = createApp(configuration({ APP_ORIGIN: origin, UPLOAD_DIR: directory }));
+  const app = createApp(
+    configuration({ APP_ORIGIN: origin, REQUIRE_VERIFIED_EMAIL: 'false', UPLOAD_DIR: directory }),
+  );
   apiServer = await new Promise((resolveServer, reject) => {
     const server = app.listen(3102, '127.0.0.1', () => resolveServer(server));
     server.once('error', reject);

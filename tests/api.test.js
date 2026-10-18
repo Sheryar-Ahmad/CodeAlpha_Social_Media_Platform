@@ -32,7 +32,9 @@ before(async () => {
   directory = await mkdtemp(join(tmpdir(), 'forma-api-'));
   database = await localDatabase({ persistent: true, dataPath: join(directory, 'database') });
   await connectDatabase(database.getUri('forma_test'));
-  app = createApp(configuration({ APP_ORIGIN: origin, UPLOAD_DIR: directory }));
+  app = createApp(
+    configuration({ APP_ORIGIN: origin, REQUIRE_VERIFIED_EMAIL: 'false', UPLOAD_DIR: directory }),
+  );
   alice = request.agent(app);
   bob = request.agent(app);
 });

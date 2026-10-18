@@ -2,6 +2,114 @@
 .manage-collections {
   padding: 0 28px 28px;
 }
+.edit-form > select,
+.account-form select,
+.account-form textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--soft);
+  color: var(--ink);
+  font-size: 13px;
+}
+.moderation-screen > .section-heading h1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: clamp(24px, 4vw, 34px);
+  letter-spacing: -1px;
+}
+.moderation-report {
+  margin: 24px 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 24px;
+  background: var(--surface);
+  max-width: 760px;
+}
+.moderation-report h2 {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+.moderation-report > p {
+  line-height: 1.8;
+  font-size: 13px;
+  margin-bottom: 15px;
+  overflow-wrap: anywhere;
+}
+.moderation-report blockquote {
+  margin: 20px 0;
+  padding: 18px;
+  background: var(--soft);
+  border-left: 3px solid var(--accent);
+  font-size: 13px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.moderation-report blockquote img {
+  width: 100%;
+  max-height: 250px;
+  object-fit: contain;
+  display: block;
+  margin-top: 15px;
+}
+.profile-actions {
+  flex-wrap: wrap;
+}
+.verification-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  background: var(--soft);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.identity-page {
+  max-width: 560px;
+  padding: 40px 20px;
+  margin: auto;
+}
+.identity-card {
+  margin-top: 45px;
+  padding: 30px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.identity-card h1 {
+  font-size: 28px;
+  line-height: 1.2;
+  letter-spacing: -1px;
+  margin: 18px 0 12px;
+}
+.identity-card > p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.8;
+  margin-bottom: 24px;
+}
+.identity-icon {
+  display: inline-flex;
+  color: var(--accent);
+  padding: 14px;
+  border-radius: 50%;
+  background: var(--soft);
+}
+.identity-card > .text-button {
+  margin-top: 24px;
+}
+.recovery-link {
+  margin-top: 18px;
+  font-size: 12px;
+}
 .account-intro {
   display: flex;
   gap: 12px;

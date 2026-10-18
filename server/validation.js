@@ -28,6 +28,13 @@ export const registerSchema = z
   })
   .strict();
 export const loginSchema = z.object({ email, password: z.string().min(1).max(128) }).strict();
+export const recoveryRequestSchema = z.object({ email }).strict();
+export const emailTokenSchema = z
+  .object({ token: z.string().regex(/^[a-f\d]{64}$/, 'This link is invalid or expired.') })
+  .strict();
+export const resetPasswordSchema = z
+  .object({ token: emailTokenSchema.shape.token, newPassword: password })
+  .strict();
 export const passwordChangeSchema = z
   .object({
     currentPassword: z.string().min(1).max(128),
@@ -36,6 +43,23 @@ export const passwordChangeSchema = z
   .strict()
   .refine((value) => value.currentPassword !== value.newPassword, 'Choose a different password.');
 export const collectionNameSchema = z.object({ name: text(30).min(1) }).strict();
+export const reportSchema = z
+  .object({
+    kind: z.enum(['post', 'member']),
+    targetId: objectId,
+    reason: z.enum(['spam', 'harassment', 'hate', 'sexual', 'dangerous', 'other']),
+    details: text(500).default(''),
+  })
+  .strict();
+export const reviewSchema = z
+  .object({
+    action: z.enum(['dismiss', 'remove-post', 'suspend-member']),
+    notes: text(500).default(''),
+  })
+  .strict();
+export const deleteAccountSchema = z
+  .object({ currentPassword: z.string().min(1).max(128), confirmation: z.literal('DELETE') })
+  .strict();
 export const profileSchema = z.object({ name: text(60).min(1), bio: text(160) }).strict();
 export const preferenceSchema = z
   .object({

@@ -104,6 +104,8 @@ export function Profile({
   onFollow,
   onLogout,
   onAccount,
+  onBlock,
+  onReport,
   error = '',
 }) {
   if (!own && !person)
@@ -140,12 +142,24 @@ export function Profile({
         </div>
         <div className="profile-actions">
           {!own ? (
-            <FollowButton
-              person={profile}
-              following={state.following.includes(profile.id)}
-              onFollow={onFollow}
-              pending={state.busy}
-            />
+            <>
+              <FollowButton
+                person={profile}
+                following={state.following.includes(profile.id)}
+                onFollow={onFollow}
+                pending={state.busy}
+              />
+              {onBlock && (
+                <button className="text-button" onClick={() => onBlock(profile)}>
+                  Block member
+                </button>
+              )}
+              {onReport && (
+                <button className="text-button" onClick={() => onReport(profile)}>
+                  Report member
+                </button>
+              )}
+            </>
           ) : (
             <>
               <button className="secondary-button" onClick={onEdit}>

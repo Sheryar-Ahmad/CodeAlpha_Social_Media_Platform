@@ -43,10 +43,26 @@ export function authentication(config) {
       expiresAt: { $gt: new Date() },
     });
     const user = session && (await User.findById(session.userId));
-    if (!user || user.isSample || session.version !== user.sessionVersion)
+    if (
+      !user ||
+      user.isSample ||
+      user.status !== 'active' ||
+      session.version !== user.sessionVersion
+    )
       throw new HttpError(401, 'Your session has ended. Sign in again.');
     request.user = user;
     request.session = session;
+    next();
+  };
+}
+
+export function requireVerifiedEmail(config) {
+  return (request, response, next) => {
+    const writing = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method);
+    if (config.requireVerifiedEmail && writing && !request.user.emailVerifiedAt)
+      return next(
+        new HttpError(403, 'Verify your email from Account settings before participating.'),
+      );
     next();
   };
 }

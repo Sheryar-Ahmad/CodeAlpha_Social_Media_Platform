@@ -2,7 +2,13 @@ import { Router } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { User, Session } from '../models.js';
 import { hashPassword, verifyPassword, issueSession } from '../security.js';
-import { HttpError, parse, resourceId, passwordChangeSchema } from '../validation.js';
+import {
+  HttpError,
+  parse,
+  resourceId,
+  passwordChangeSchema,
+  deleteAccountSchema,
+} from '../validation.js';
 import { exportAccount } from '../services/accountExport.js';
 
 export function securityRoutes(config) {
@@ -60,7 +66,11 @@ export function securityRoutes(config) {
     // Compare the old hash so two concurrent changes cannot overwrite each other.
     const user = await User.findOneAndUpdate(
       { _id: previous._id, passwordHash: previous.passwordHash },
-      { $set: { passwordHash }, $inc: { sessionVersion: 1 } },
+      {
+        $set: { passwordHash },
+        $inc: { sessionVersion: 1 },
+        $unset: { resetToken: 1, resetExpiresAt: 1 },
+      },
       { returnDocument: 'after' },
     );
     if (!user) throw new HttpError(409, 'Your password changed elsewhere. Sign in again.');
@@ -72,6 +82,27 @@ export function securityRoutes(config) {
 
   router.get('/export', sensitiveLimit, async (request, response) => {
     await exportAccount(response, request.user._id, config.origin);
+  });
+  router.delete('/', sensitiveLimit, async (request, response) => {
+    const { currentPassword } = parse(deleteAccountSchema, request.body);
+    const previous = await User.findById(request.user._id).select('+passwordHash');
+    if (!(await verifyPassword(currentPassword, previous?.passwordHash)))
+      throw new HttpError(400, 'Your current password is incorrect.');
+    const result = await User.updateOne(
+      { _id: previous._id, status: 'active', passwordHash: previous.passwordHash },
+      {
+        $set: { status: 'deleting', deletionRequestedAt: new Date() },
+        $inc: { sessionVersion: 1 },
+        $unset: { resetToken: 1, verificationToken: 1 },
+      },
+    );
+    if (!result.modifiedCount)
+      throw new HttpError(409, 'Your account changed elsewhere. Sign in again.');
+    await Session.deleteMany({ userId: previous._id });
+    response.clearCookie(config.cookieName, config.cookieOptions);
+    response
+      .status(202)
+      .json({ message: 'Your account is closed. Personal data removal is in progress.' });
   });
   return router;
 }

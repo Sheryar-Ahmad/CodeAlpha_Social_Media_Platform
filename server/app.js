@@ -6,11 +6,13 @@ import mongoose from 'mongoose';
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import { configuration } from './config.js';
-import { authentication, requireOrigin } from './security.js';
+import { authentication, requireOrigin, requireVerifiedEmail } from './security.js';
 import { authRoutes } from './routes/auth.js';
 import { accountRoutes } from './routes/account.js';
 import { postRoutes } from './routes/posts.js';
 import { securityRoutes } from './routes/security.js';
+import { recoveryRoutes } from './routes/recovery.js';
+import { safetyRoutes } from './routes/safety.js';
 
 export function createApp(config = configuration()) {
   const app = express();
@@ -48,10 +50,13 @@ export function createApp(config = configuration()) {
       .status(mongoose.connection.readyState === 1 ? 200 : 503)
       .json({ status: mongoose.connection.readyState === 1 ? 'ok' : 'unavailable' }),
   );
+  app.use('/api/auth', recoveryRoutes(config));
   app.use('/api/auth', authRoutes(config));
   app.use('/api', authentication(config));
   app.use('/api/account', securityRoutes(config));
-  app.use('/api/posts', postRoutes(config));
+  app.use('/api/safety', safetyRoutes(config));
+  app.use('/api/posts', requireVerifiedEmail(config), postRoutes(config));
+  app.use('/api/follows', requireVerifiedEmail(config));
   app.use('/api', accountRoutes());
   app.use('/api', (request, response) =>
     response.status(404).json({ error: 'This endpoint could not be found.' }),

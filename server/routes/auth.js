@@ -4,6 +4,7 @@ import { User, Session } from '../models.js';
 import { HttpError, parse, registerSchema, loginSchema } from '../validation.js';
 import { authentication, hashPassword, verifyPassword, issueSession } from '../security.js';
 import { publicUser } from '../serializers.js';
+import { queueMail } from '../services/mailQueue.js';
 
 export function authRoutes(config) {
   const router = Router();
@@ -25,13 +26,15 @@ export function authRoutes(config) {
       passwordHash,
     });
     await issueSession(request, response, user, config);
+    await queueMail(user._id, 'verification');
     response.status(201).json({ user: publicUser(user) });
   });
   router.post('/login', throttle, async (request, response) => {
     const data = parse(loginSchema, request.body);
     const user = await User.findOne({ email: data.email }).select('+passwordHash');
     const valid = await verifyPassword(data.password, user?.passwordHash);
-    if (!valid || user.isSample) throw new HttpError(401, 'Email or password is incorrect.');
+    if (!valid || user.isSample || user.status !== 'active')
+      throw new HttpError(401, 'Email or password is incorrect.');
     await issueSession(request, response, user, config);
     response.json({ user: publicUser(user) });
   });
