@@ -32,7 +32,9 @@ The authenticated JSON export streams records through database cursors. It inclu
 
 Collection deletion atomically removes the collection and clears its assignments while preserving bookmarks. Only a reply's author can remove it; post authors cannot remove another member's reply through this endpoint.
 
-Version 0.5 adds verification and recovery through `routes/recovery.js` and `services/mailQueue.js`. Raw tokens are created only during delivery; MongoDB stores hashes and expiring single-use challenges. Recovery atomically changes the password and session version without automatically signing in. Private development mail previews replace SMTP only outside production.
+Version 0.5 adds verification and recovery through `routes/recovery.js` and `services/mailQueue.js`. Raw tokens are created only during delivery; MongoDB stores hashes and expiring single-use challenges. Recovery atomically changes the password and session version without automatically signing in. Private development mail previews replace a real provider only outside production.
+
+Version 0.5.1 supports Cloudinary storage and Brevo HTTPS delivery without additional packages. `services/cloudImages.js` signs uploads/deletions on the server; `media.js` still validates, strips metadata and converts uploads first. Browser image policy allows only the configured cloud path. `services/mailer.js` selects preview, SMTP or Brevo; provider secrets remain on the server. Remote deletion is queued and retried without delaying post/moderation responses. Local storage and preview mail remain the development defaults. The free host's workers pause during sleep and resume durable jobs after waking.
 
 `services/visibility.js` centralizes mutual-block and inactive-account checks for feeds, direct posts, member search/profiles and replies. `routes/safety.js` handles private deduplicated reports and verified moderator review with bounded leases. Roles are operator-managed through `scripts/moderator.js`, never registration/profile input. Suspensions revoke sessions and hide content.
 

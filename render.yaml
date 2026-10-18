@@ -1,20 +1,15 @@
-# Review the paid plan/disk cost before creating this Blueprint.
-# One persistent Node service: client, API, mail worker and cleanup worker.
+# Free services only. Photos use Cloudinary; mail uses Brevo's HTTPS API.
+# The service sleeps when idle; durable jobs resume when it wakes.
 services:
   - type: web
     name: forma
     runtime: node
-    plan: starter
+    plan: free
     region: singapore
-    numInstances: 1
-    autoDeployTrigger: off
+    autoDeployTrigger: 'off'
     buildCommand: npm ci --include=dev --no-fund && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
-    disk:
-      name: forma-photos
-      mountPath: /var/data/forma
-      sizeGB: 1
     envVars:
       - key: NODE_VERSION
         value: '24'
@@ -24,8 +19,14 @@ services:
         sync: false
       - key: MONGODB_URI
         sync: false
-      - key: UPLOAD_DIR
-        value: /var/data/forma/uploads
+      - key: MEDIA_STORE
+        value: cloudinary
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
       - key: TRUST_PROXY_HOPS
         value: '1'
       - key: SEED_STARTER_CONTENT
@@ -33,16 +34,8 @@ services:
       - key: REQUIRE_VERIFIED_EMAIL
         value: 'true'
       - key: MAIL_MODE
-        value: smtp
-      - key: SMTP_HOST
-        sync: false
-      - key: SMTP_PORT
-        value: '587'
-      - key: SMTP_SECURE
-        value: 'false'
-      - key: SMTP_USER
-        sync: false
-      - key: SMTP_PASS
+        value: brevo
+      - key: BREVO_API_KEY
         sync: false
       - key: MAIL_FROM
         sync: false

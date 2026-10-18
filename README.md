@@ -2,7 +2,7 @@
 
 **Find your next idea.** A visual social platform for sharing work, learning, useful resources, and everyday perspectives.
 
-Version **0.5** adds email verification, password recovery, member blocking, private reports, a moderator queue, and account closure with repeatable cleanup. Accounts, shared posts, replies, follows, reactions, private collections, preferences, and activity remain available. The browser-only preview is at `/demo`.
+Version **0.5.1** adds a free-hosting configuration with durable Cloudinary photos and Brevo HTTPS email. Verification, recovery, blocking, private reports, moderation, account closure, shared posts, replies, follows, reactions, private collections and activity are available. The browser-only preview is at `/demo`.
 
 ## Run locally
 
@@ -17,7 +17,7 @@ Open **http://127.0.0.1:5175** and choose **Create account**. No cloud database 
 
 The API uses port 3002. Stop development with Ctrl+C. Client changes reload automatically; restart the command after changing server code. If a port is occupied, close the earlier Forma process and retry. First-time MongoDB downloads require network access.
 
-New accounts must verify their email before posting or interacting. Local development saves email previews as private JSON files in ignored `.data/mail`; open the newest message addressed to your test account and follow its link. These files contain working links: do not share or commit them. No email provider is needed locally. Production requires real SMTP delivery. To grant moderator access to your verified local account while development is running, use `npm run moderator -- grant your_handle`.
+New accounts must verify their email before posting or interacting. Local development saves email previews as private JSON files in ignored `.data/mail`; open the newest message addressed to your test account and follow its link. These files contain working links: do not share or commit them. No email provider is needed locally. Production requires a real mail provider; free hosting uses Brevo over HTTPS. To grant moderator access to your verified local account while development is running, use `npm run moderator -- grant your_handle`.
 
 To use your own MongoDB instance instead, copy `.env.example` to `.env`, set `MONGODB_URI` there, and restart. Keep credentials out of chat and Git. The development origin must match `APP_ORIGIN` exactly, including host and port; use the address above rather than switching to `localhost`.
 
@@ -57,7 +57,7 @@ To use your own MongoDB instance instead, copy `.env.example` to `.env`, set `MO
 
 Start with the [plain-language code guide](docs/CODE_GUIDE.md). See also [backend decisions](docs/BACKEND.md), [roadmap](docs/PLAN.md), and [verification](docs/VERIFICATION.md).
 
-Launch instructions are in [deployment](docs/DEPLOYMENT.md); moderation and data retention are in [community rules](docs/COMMUNITY.md). The included `render.yaml` is an undeployed option that requires paid hosting and a persistent disk.
+Launch instructions are in [deployment](docs/DEPLOYMENT.md); moderation and data retention are in [community rules](docs/COMMUNITY.md). The included `render.yaml` is an undeployed **free-only** configuration: Render Free, MongoDB Atlas Free, Cloudinary Free and Brevo Free. It requires service accounts and private environment settings; no paid disk is configured. Render sleeps when idle and provider quotas apply.
 
 ## Feed behavior
 
@@ -101,7 +101,7 @@ Email verification, recovery, blocking, reports, moderation and account closure 
 
 ## Production configuration
 
-Build with `npm run build`, configure `MONGODB_URI`, `NODE_ENV=production`, the exact HTTPS `APP_ORIGIN`, persistent `UPLOAD_DIR`, and SMTP settings, then run `npm start`. Express serves the client and API together. See [the step-by-step deployment guide](docs/DEPLOYMENT.md). Provide a TLS reverse proxy and set `TRUST_PROXY_HOPS` only to the actual number of trusted proxy hops. `npm run preview` serves only the static client and is not the shared application server.
+Build with `npm run build`, configure `MONGODB_URI`, `NODE_ENV=production`, the exact HTTPS `APP_ORIGIN`, Cloudinary storage and Brevo email settings, then run `npm start`. Express serves the client and API together. See [the step-by-step deployment guide](docs/DEPLOYMENT.md). Local file storage and SMTP remain available for compatible hosts. Set `TRUST_PROXY_HOPS` only to the actual number of trusted proxy hops. `npm run preview` serves only the static client and is not the shared application server.
 
 Use an authenticated MongoDB service, persistent upload storage, backups, monitoring, and the remaining release controls before public launch. The automatic loopback development database is not a production database. Follow the [MongoDB security checklist](https://www.mongodb.com/docs/manual/administration/security-checklist/). No deployment has been performed.
 
@@ -109,7 +109,7 @@ Use an authenticated MongoDB service, persistent upload storage, backups, monito
 
 [Redesign decisions](docs/REDESIGN.md).
 
-The interface uses system fonts and Lucide icons. SVG studies are original code-native graphics. Photographs and stock portraits are downloaded locally from Unsplash; runtime rendering makes no external image or font requests. Image sources:
+The interface uses system fonts and Lucide icons. SVG studies are original code-native graphics. Sample photographs and stock portraits are downloaded locally from Unsplash, without external font/image requests for those assets. With Cloudinary enabled, member photos load directly from its CDN. Image sources:
 
 - [Desk](https://images.unsplash.com/photo-1499750310107-5fef28a66643), [mountains](https://images.unsplash.com/photo-1464822759023-fed622ff2c3b), [interior](https://images.unsplash.com/photo-1600210492486-724fe5c67fb0), [shelves](https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85).
 - [Portrait 1](https://images.unsplash.com/photo-1534528741775-53994a69daeb), [portrait 2](https://images.unsplash.com/photo-1506794778202-cad84cf45f1d), [portrait 3](https://images.unsplash.com/photo-1524504388940-b1c1722653e1), [portrait 4](https://images.unsplash.com/photo-1500648767791-00dcc994a43e), [portrait 5](https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43).

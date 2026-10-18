@@ -1,10 +1,11 @@
-# Forma 0.5 verification
+# Forma 0.5.1 verification
 
 Checked on 18 October 2026 with Node.js 20.19.2, installed MongoDB 9.0.2, and headless Microsoft Edge.
 
 ## Automated checks
 
-- `npm test`: 54 tests pass (21 state tests and 33 API integration tests).
+- `npm test`: 58 tests pass (21 state tests and 37 API/provider tests).
+- Cloud provider checks simulate signed uploads, ownership-restricted deletion, provider errors, CDN invalidation requests, WebP conversion without local files, app recreation with retained URLs, retryable deletion, HTTPS mail, private provider credentials and configured image security policy. These do not call real providers or prove live credentials/delivery.
 - Identity tests cover unverified publishing restrictions, hashed verification tokens, explicit single-use confirmation, uniform recovery responses, concurrent reset attempts, expired links, password-change invalidation, session revocation, delivery retries, preview mail, and production SMTP requirements.
 - Safety tests cover mutual block visibility across direct profiles/posts, feeds, search, replies and activity; blocked interactions; private deduplicated reports; role enforcement; review leases; moderator removal with saved/photo cleanup; suspension; credential-confirmed closure; immediate hiding; repeatable cleanup; retained-file protection; and unaffected accounts.
 - `npm run test:release`: browser registration and email confirmation, recovery through a test transport, member reporting/blocking/unblocking, moderator review, account closure and its signed-out notice, mobile dialog widths down to 320 px, and no browser runtime errors. It sends no real emails and changes only isolated test accounts.
@@ -28,4 +29,4 @@ The 16 October graphics refresh adds the reusable collage, botanical and geometr
 
 ## Boundaries
 
-Firefox/Safari, screen-reader use, a formal accessibility audit, load testing, actual SMTP delivery, hosted persistence, backup restoration and hosted deployment remain unverified. The GitHub workflow runs API/state tests, the build and all three browser suites with Chromium; hosted results are available in the repository's Actions tab. Verification/recovery, reporting/moderation and account closure are implemented and tested locally. Direct messages and real-time delivery remain future features. `render.yaml` and [deployment instructions](DEPLOYMENT.md) are prepared but have not provisioned resources. See [the release roadmap](PLAN.md).
+Firefox/Safari, screen-reader use, a formal accessibility audit, load testing, actual SMTP/Brevo delivery, live Cloudinary operations, hosted persistence, backup restoration and hosted deployment remain unverified. The GitHub workflow runs API/state tests, the build and all three browser suites with Chromium; hosted results are available in the repository's Actions tab. Verification/recovery, reporting/moderation and account closure are implemented and tested locally. Direct messages and real-time delivery remain future features. The free-only `render.yaml` and [deployment instructions](DEPLOYMENT.md) are prepared but have not provisioned resources. See [the release roadmap](PLAN.md).
