@@ -23,7 +23,7 @@ async function register(page, name, handle) {
   await page.goto(origin);
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
   await page.getByLabel('Display name').fill(name);
-  await page.getByLabel('Handle', { exact: true }).fill(handle);
+  await page.getByLabel('Username', { exact: true }).fill(handle);
   await page.getByLabel('Email', { exact: true }).fill(`${handle}@example.test`);
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Create my account' }).click();

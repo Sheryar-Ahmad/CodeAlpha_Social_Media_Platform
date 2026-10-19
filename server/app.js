@@ -81,7 +81,7 @@ export function createApp(config = configuration()) {
   app.use((error, request, response, next) => {
     if (response.headersSent) return next(error);
     if (error.code === 11000)
-      return response.status(409).json({ error: 'That email or handle is already in use.' });
+      return response.status(409).json({ error: 'That email or username is already in use.' });
     if (error.type === 'entity.too.large')
       return response
         .status(413)

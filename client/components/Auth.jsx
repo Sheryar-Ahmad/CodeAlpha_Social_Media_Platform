@@ -111,7 +111,7 @@ export default function Auth({ authenticate, error, unavailable = false, retry, 
                   <>
                     <label htmlFor="auth-name">Display name</label>
                     <input id="auth-name" name="name" autoComplete="name" maxLength={60} required />
-                    <label htmlFor="auth-handle">Handle</label>
+                    <label htmlFor="auth-handle">Username</label>
                     <input
                       id="auth-handle"
                       name="handle"

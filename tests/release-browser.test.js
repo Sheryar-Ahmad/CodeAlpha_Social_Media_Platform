@@ -81,7 +81,7 @@ try {
   await page.goto(origin);
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
   await page.getByLabel('Display name').fill('Release Member');
-  await page.getByLabel('Handle', { exact: true }).fill('release_member');
+  await page.getByLabel('Username', { exact: true }).fill('release_member');
   await page.getByLabel('Email', { exact: true }).fill('release@example.test');
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Create my account' }).click();
